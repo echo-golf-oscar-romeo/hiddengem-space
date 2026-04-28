@@ -1873,11 +1873,6 @@ function saveCommunityGem(){
 
   if (!appState.map.pendingCommunityLngLat) { if (err) err.textContent = "Click the map first to set location."; return; }
 
-  const dims = {}; Object.keys(DIMENSIONS).forEach(k => { dims[k] = 10; });
-  const [lng,lat] = appState.map.pendingCommunityLngLat;
-  const grad = appState.ui.communityDraftGradient || pickCommunityGradient();
-  const id = "community_" + Date.now();
-
   const dims = {};
   Object.keys(DIMENSIONS).forEach(k => dims[k] = 10);
   
