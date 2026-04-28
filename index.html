@@ -521,8 +521,8 @@ input[type=range]::-webkit-slider-thumb:hover{transform:scale(1.06)}
         <div class='legend-row'><span class='legend-dot' style='background:var(--ruby)'></span><span>Culture</span></div>
         <div class='legend-row'><span class='legend-dot' style='background:var(--emerald)'></span><span>Nature</span></div>
         <div class='legend-row'><span class='legend-dot' style='background:var(--amber)'></span><span>Shopping</span></div>
-        <div class='legend-row'><span class='legend-dot' style='background:var(--rose)'></span><span>Food</span></div>
-        <div class='legend-row'><span class='legend-dot' style='background:var(--sapphire)'></span><span>Sport</span></div>
+        <div class='legend-row'><span class='legend-dot' style='background:var(--rose)'></span><span>Spirituality</span></div>
+        <div class='legend-row'><span class='legend-dot' style='background:var(--sapphire)'></span><span>Architecture</span></div>
         <div class='legend-row'><span class='legend-dot' style='background:var(--amethyst)'></span><span>Entertainment</span></div>
         <div class='legend-row'><span class='legend-dot' style='background:var(--aquamarine)'></span><span>Other</span></div>
       </div>
@@ -639,7 +639,15 @@ input[type=range]::-webkit-slider-thumb:hover{transform:scale(1.06)}
 const ATTRACTIONS_CDN_URL = "https://cdn.jsdelivr.net/gh/echo-golf-oscar-romeo/hiddengem-space@main/attractions.json";
 
 const DIMENSIONS = {"emotional_experience": "Emotional Experience", "scenic_beauty": "Scenic Beauty", "local_authenticity": "Local Authenticity", "novelty_and_surprise": "Novelty & Surprise", "photogenic_quality": "Photogenic Quality", "value_for_money": "Value for Money", "cultural_depth": "Cultural Depth"};
-const GEM_FAMILIES = [{"key": "ruby", "label": "Culture", "color": "#E0115F"}, {"key": "emerald", "label": "Nature", "color": "#00B571"}, {"key": "amber", "label": "Shopping", "color": "#FFBF00"}, {"key": "rose", "label": "Food", "color": "#E27396"}, {"key": "sapphire", "label": "Sport", "color": "#0F52BA"}, {"key": "amethyst", "label": "Entertainment", "color": "#9966CC"}, {"key": "aquamarine", "label": "Other", "color": "#00BFBF"}, {"key": "community", "label": "Community Gems", "color": "linear-gradient(135deg,#E0115F 0%,#0F52BA 50%,#00B571 100%)"}];
+const GEM_FAMILIES = [
+  { key: "ruby",       label: "Culture",        color: "#E0115F" },
+  { key: "emerald",    label: "Nature",         color: "#00B571" },
+  { key: "amber",      label: "Shopping",       color: "#FFBF00" },
+  { key: "rose",       label: "Spirituality",   color: "#E27396" },
+  { key: "sapphire",   label: "Architecture",   color: "#0F52BA" },
+  { key: "amethyst",   label: "Entertainment",  color: "#9966CC" },
+  { key: "aquamarine", label: "Other",          color: "#00BFBF" },
+  {"key": "community", "label": "Community Gems", "color": "linear-gradient(135deg,#E0115F 0%,#0F52BA 50%,#00B571 100%)"}];
 
 const MAPBOX_TILE_URL = "https://api.mapbox.com/styles/v1/kuttin29/cmoa6a7cz003201r3eykg17k4/tiles/{z}/{x}/{y}?access_token=pk.eyJ1Ijoia3V0dGluMjkiLCJhIjoiY21qNXRscjY3MWswYTNnczQ2ejBub2tsaiJ9.nQJ5iQXR3IYR4d8c5zGMIA";
 const COMMUNITY_GRADIENTS = Object.freeze([
@@ -667,10 +675,10 @@ const MAPBOX_TOKEN = "pk.eyJ1Ijoia3V0dGluMjkiLCJhIjoiY21qNXRscjY3MWswYTNnczQ2ejB
 const presets = [
   { name:"Balanced", weights:{ emotional_experience:5, scenic_beauty:5, local_authenticity:5, novelty_and_surprise:5, photogenic_quality:5, value_for_money:5, cultural_depth:5 }, families:["ruby","emerald","amber","rose","sapphire","amethyst","aquamarine"] },
   { name:"Broke Student", weights:{ emotional_experience:5, scenic_beauty:4, local_authenticity:5, novelty_and_surprise:5, photogenic_quality:4, value_for_money:10, cultural_depth:3 }, families:["ruby","emerald","amber","rose","sapphire","amethyst","aquamarine"] },
-  { name:"Culture Lover", weights:{ emotional_experience:7, scenic_beauty:4, local_authenticity:9, novelty_and_surprise:6, photogenic_quality:5, value_for_money:4, cultural_depth:10 }, families:["ruby"] },
+  { name:"Culture Lover", weights:{ emotional_experience:7, scenic_beauty:4, local_authenticity:9, novelty_and_surprise:6, photogenic_quality:5, value_for_money:4, cultural_depth:10 }, families: ["ruby","rose","sapphire"] },
   { name:"Nature Explorer", weights:{ emotional_experience:7, scenic_beauty:10, local_authenticity:6, novelty_and_surprise:8, photogenic_quality:8, value_for_money:5, cultural_depth:3 }, families:["emerald"] },
   { name:"Urban Wanderer", weights:{ emotional_experience:6, scenic_beauty:5, local_authenticity:7, novelty_and_surprise:8, photogenic_quality:7, value_for_money:5, cultural_depth:6 }, families:["ruby","amber","aquamarine","amethyst"] },
-  { name:"Weekend Escapist", weights:{ emotional_experience:8, scenic_beauty:8, local_authenticity:6, novelty_and_surprise:7, photogenic_quality:7, value_for_money:6, cultural_depth:4 }, families:["emerald","rose","sapphire","aquamarine"] },
+  { name:"Photoholic", weights: { emotionalexperience:6, scenicbeauty:9, localauthenticity:7, noveltyandsurprise:8, photogenicquality:10, valueformoney:4, culturaldepth:5 }, families: ["ruby","emerald","sapphire","rose","aquamarine"]},
   { name:"Community Gems", weights:{ emotional_experience:5, scenic_beauty:5, local_authenticity:5, novelty_and_surprise:5, photogenic_quality:5, value_for_money:5, cultural_depth:5 }, families:["community"] },
   { name:"Custom", weights:null, families:["ruby","emerald","amber","rose","sapphire","amethyst","aquamarine"] }
 ];
