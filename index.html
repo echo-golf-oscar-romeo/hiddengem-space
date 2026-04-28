@@ -2075,6 +2075,7 @@ function updateApp(){
   renderMap(appState.data.ranked);
   renderDetail(getSelectedAttraction());
   if (appState.ui.activeTab === "profile") renderProfile();
+  renderDrawerProfilePanel();   // ← ADD THIS LINE
   applyTabUi(appState.ui.activeTab);
 }
 
