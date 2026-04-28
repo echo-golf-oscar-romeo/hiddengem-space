@@ -374,7 +374,39 @@ input[type=range]::-webkit-slider-thumb:hover{transform:scale(1.06)}
   cursor:pointer;font-size:11px;font-weight:700;color:var(--muted);
 }
 .route-clear-btn:hover{color:var(--text);border-color:rgba(0,0,0,.18)}
+/* Route mode */
+.route-banner{
+  position:absolute;top:10px;left:50%;transform:translateX(-50%);z-index:9;
+  background:rgba(255,255,255,.96);border:1px solid rgba(0,0,0,.08);border-radius:999px;
+  padding:8px 14px;font-size:12px;font-weight:800;color:var(--text);
+  box-shadow:0 8px 20px rgba(26,26,26,.12);display:flex;gap:10px;align-items:center;
+  white-space:nowrap;
+}
+.route-banner button{
+  border:1px solid rgba(0,0,0,.1);background:#fff;border-radius:999px;
+  padding:5px 10px;font-size:11px;font-weight:800;cursor:pointer;color:var(--muted);
+  transition:all .18s ease;
+}
+.route-banner button:hover{color:var(--text);border-color:rgba(0,0,0,.2)}
 
+/* Community gem photo preview */
+.photo-preview{
+  width:100%;height:110px;object-fit:cover;border-radius:10px;
+  border:1px solid rgba(0,0,0,.07);
+}
+.photo-upload-area{
+  border:1.5px dashed rgba(0,0,0,.14);border-radius:10px;padding:10px;
+  text-align:center;cursor:pointer;font-size:11px;color:var(--muted);
+  background:#fafaf8;transition:border-color .18s ease;
+}
+.photo-upload-area:hover{border-color:rgba(15,82,186,.3)}
+
+/* Orbit ring for community markers with no photo */
+.marker-core.community-orbit::after{
+  content:"";position:absolute;inset:-3px;border-radius:999px;
+  border:1.8px dashed rgba(255,255,255,.85);opacity:.9;pointer-events:none;
+}
+  
 @media (max-width:1200px){.main-grid{grid-template-columns:1fr}#map{min-height:54vh}}
 @media (max-width:980px){
   .topbar{grid-template-columns:1fr auto}
@@ -554,11 +586,17 @@ const COMMUNITY_GRADIENTS = Object.freeze([
 const SCORE_CONFIG = Object.freeze({
   valuePower: 2.25,
   weightPower: 1.2,
-  popularityPenaltyPower: 1.4,
-  hiddenGemBonus: 5,
+  popularityPenaltyPower: 1.6,
+  hiddenGemBonus: 7,
   topOrbitalCount: 7
 });
 const VIEW_LIMITS = Object.freeze({ list: 50, map: 85 });
+
+// Track IDs created this session so edit/delete + "My gems" filter works correctly
+const SESSION_GEM_IDS = new Set();
+
+// Mapbox token (already used for map tiles – reuse for Directions API)
+const MAPBOX_TOKEN = "pk.eyJ1Ijoia3V0dGluMjkiLCJhIjoiY21qNXRscjY3MWswYTNnczQ2ejBub2tsaiJ9.nQJ5iQXR3IYR4d8c5zGMIA";
 
 const presets = [
   { name:"Balanced", weights:{ emotional_experience:5, scenic_beauty:5, local_authenticity:5, novelty_and_surprise:5, photogenic_quality:5, value_for_money:5, cultural_depth:5 }, families:["ruby","emerald","amber","rose","sapphire","amethyst","aquamarine"] },
@@ -582,16 +620,19 @@ const appState = {
     },
     selectedPreset: "Balanced",
     activeGemFamilies: new Set(["ruby","emerald","amber","rose","sapphire","amethyst","aquamarine"]),
-    hiddenNicheTarget: 5
+    hiddenNicheTarget: 4
   },
   userActions: { liked: new Set(), saved: new Set(), visited: new Set() },
   ui: {
     activeTab: "list", selectedAttractionId: null, prefsOpen: false, onboardingOpen: true,
     onboardingAdvancedOpen: false, drawerAdvancedOpen: true, legendOpen: false, addingCommunityGem: false,
-    communityDraftGradient: null, selectedProfileGroup: "saved", viewMode: "attractions", selectedNeighborhoodId: null,
-    profileSettingsMode: false, previousViewState: null, selectedNeighborhoodName: "", activeRoute: null
+    editingCommunityGemId: null,
+    communityDraftGradient: null, selectedProfileGroup: "saved", viewMode: "attractions",
+    selectedNeighborhoodId: null, profileSettingsMode: false, previousViewState: null,
+    selectedNeighborhoodName: "",
+    routeMode: false, routeGemIds: [], routeOrdered: []
   },
-  data: { baseAttractions: [], communityGems: [], _attractionsLoaded: false, ranked: [], topGemIds: new Set(), photoTopIds: new Set(), orbitTopIds: new Set() },
+  data: { baseAttractions: [...BASE_ATTRACTIONS], communityGems: [], ranked: [], topGemIds: new Set(), photoTopIds: new Set(), orbitTopIds: new Set() },
   map: { instance: null, markerIndex: new Map(), pendingCommunityLngLat: null, ready: false, failed: false }
 };
 
@@ -969,16 +1010,22 @@ function renderMap(list) {
       inner.style.color = color;
     }
     
-    if (isPhotoTop && a.photo) {
+    const isCommunityGem = a.isCommunity || a.gem === "community";
+    const hasPhoto = !!a.photo;
+
+    if ((isPhotoTop || isCommunityGem) && hasPhoto) {
       inner.classList.add("photo-marker");
       inner.style.backgroundImage = `url(${a.photo})`;
       inner.style.backgroundSize = "cover";
       inner.style.backgroundPosition = "center";
-      inner.style.border = `2px solid ${String(color).includes("gradient") ? "#8D877D" : color}`;
+      inner.style.border = `2px solid ${String(color).includes("gradient") ? "#E0115F" : color}`;
+    } else if (isCommunityGem && !hasPhoto) {
+      // community gem without photo: orbit ring with gradient color
+      inner.classList.add("community-orbit");
     } else if (isOrbitTop) {
       inner.classList.add("top-gem");
     }
-
+    
     el.classList.toggle("selected", isSelected);
 
     el.addEventListener("click", (evt) => {
@@ -1153,7 +1200,6 @@ function renderNicheQuestionBox(){
       <div class="small-note"><strong>Is it unknown niche enough?</strong></div>
       <div class="niche-actions">
         <button class="niche-feedback" data-action="niche-feedback" data-dir="more">Show more niche</button>
-        <button class="niche-feedback" data-action="niche-feedback" data-dir="keep">Continue as it is</button>
         <button class="niche-feedback" data-action="niche-feedback" data-dir="less">Show more popular</button>
       </div>
     </div>
@@ -1170,13 +1216,18 @@ function renderList(list){
     return;
   }
 
-  const cards = list.slice(0, VIEW_LIMITS.list).map((a) => `
+  const cards = list.slice(0, VIEW_LIMITS.list).map((a) => {
+    const color = markerColor(a);
+    const dotStyle = String(color).includes("gradient")
+      ? `background:linear-gradient(135deg,#E0115F 0%,#0F52BA 50%,#00B571 100%)`
+      : `background:${color}`;
+    return `
     <article class="attn-card ${appState.ui.selectedAttractionId === a.id ? "selected" : ""}" tabindex="0" data-action="select-attraction" data-id="${escapeHtml(a.id)}">
       <div class="attn-head">
         <div>
           <h3 class="attn-title">${escapeHtml(a.name)}</h3>
           <div class="attn-meta">
-            <span class="gem-dot" style="background:${String(markerColor(a)).includes("gradient") ? "#8D877D" : markerColor(a)}"></span>
+            <span class="gem-dot" style="${dotStyle}"></span>
             <span>${escapeHtml(a.category || "Attraction")}</span>${a.area ? `<span>•</span><span>${escapeHtml(a.area)}</span>` : ""}
           </div>
         </div>
@@ -1187,11 +1238,13 @@ function renderList(list){
         ${actionBtn("save", a.id, appState.userActions.saved.has(a.id))}
         ${actionBtn("visit", a.id, appState.userActions.visited.has(a.id))}
       </div>
-    </article>`);
+    </article>`;
+  });
 
-  const showNicheBox = appState.ui.viewMode === "attractions" && cards.length > 10;
+  // Niche question box appears after 7th result (index 6), not 10th
+  const showNicheBox = appState.ui.viewMode === "attractions" && cards.length > 7;
   const listHtml = showNicheBox
-    ? (cards.slice(0, 10).join("") + renderNicheQuestionBox() + cards.slice(10).join(""))
+    ? (cards.slice(0, 7).join("") + renderNicheQuestionBox() + cards.slice(7).join(""))
     : cards.join("");
   cont.innerHTML = listHtml;
 }
@@ -1256,16 +1309,39 @@ function renderDetail(a){
     </div>`;
 }
 
-function communityFormHtml(){
+function communityFormHtml(editGem){
   const hasPoint = !!appState.map.pendingCommunityLngLat;
+  const isEdit = !!editGem;
+  const nameVal = editGem ? escapeHtml(editGem.name) : "";
+  const tagVal  = editGem ? escapeHtml(editGem.category) : "";
+  const sumVal  = editGem ? escapeHtml(editGem.summary) : "";
+  const photoVal= editGem ? escapeHtml(editGem.photo || "") : "";
+
+  const photoSection = `
+    <div class="field">
+      <label for="cg_photo">Photo (optional)</label>
+      ${photoVal
+        ? `<img class="photo-preview" id="cgPhotoPreview" src="${photoVal}" alt="Preview">`
+        : `<img class="photo-preview hidden" id="cgPhotoPreview" src="" alt="Preview">`}
+      <label class="photo-upload-area" for="cg_photo_file">
+        📷 ${photoVal ? "Change photo" : "Upload a photo"}
+      </label>
+      <input type="file" id="cg_photo_file" accept="image/*" style="display:none">
+      <input type="hidden" id="cg_photo" name="photo" value="${photoVal}">
+    </div>`;
+
   return `
-    <div class="small-note">${hasPoint ? "Location set. Fill details and save." : "Pick a location on the map first."}</div>
-    <form id="communityGemForm" style="display:grid;gap:8px;margin-top:5px">
-      <div class="field"><label for="cg_name">Name</label><input id="cg_name" name="name" required placeholder="Name of the hidden gem"></div>
-      <div class="field"><label for="cg_tag">Tag</label><input id="cg_tag" name="tag" placeholder="e.g. A place for a date"></div>
-      <div class="field"><label for="cg_summary">Short story</label><textarea id="cg_summary" name="summary" placeholder="Why is this special?"></textarea></div>
+    <div class="small-note">${
+      isEdit ? "Editing gem — update details below." :
+      hasPoint ? "Location set. Fill details and save." : "Pick a location on the map first."
+    }</div>
+    <form id="communityGemForm" style="display:grid;gap:8px;margin-top:5px" data-edit-id="${isEdit ? escapeHtml(editGem.id) : ""}">
+      <div class="field"><label for="cg_name">Name</label><input id="cg_name" name="name" required placeholder="Name of the hidden gem" value="${nameVal}"></div>
+      <div class="field"><label for="cg_tag">Tag</label><input id="cg_tag" name="tag" placeholder="e.g. A place for a date" value="${tagVal}"></div>
+      <div class="field"><label for="cg_summary">Short story</label><textarea id="cg_summary" name="summary" placeholder="Why is this special?">${sumVal}</textarea></div>
+      ${photoSection}
       <div style="display:flex;gap:8px;flex-wrap:wrap">
-        <button class="community-btn ${hasPoint ? "" : "disabled"}" type="submit" ${hasPoint ? "" : "disabled"}>Save</button>
+        <button class="community-btn ${(!isEdit && !hasPoint) ? "disabled" : ""}" type="submit" ${(!isEdit && !hasPoint) ? "disabled" : ""}>${isEdit ? "Update" : "Save"}</button>
         <button class="link-btn" type="button" data-action="cancel-community-gem">Cancel</button>
       </div>
       <div id="communityFormError" class="small-note" aria-live="polite"></div>
@@ -1285,41 +1361,89 @@ function renderProfile(){
   const cont = document.getElementById("profileContainer"); if (!cont) return;
 
   if (appState.ui.addingCommunityGem) {
+    const editGem = appState.ui.editingCommunityGemId
+      ? appState.data.communityGems.find(g => g.id === appState.ui.editingCommunityGemId)
+      : null;
     cont.innerHTML = `
       <div class="detail-grid">
         <button class="community-btn" id="communityMainBtnList" data-action="start-community-gem">Click on a map!</button>
-        <div id="communityFormWrap">${communityFormHtml()}</div>
+        <div id="communityFormWrap">${communityFormHtml(editGem)}</div>
       </div>
     `;
     setCommunityButtonStyle();
+    // Wire up photo file input
+    const fileInput = document.getElementById("cg_photo_file");
+    const photoHidden = document.getElementById("cg_photo");
+    const preview = document.getElementById("cgPhotoPreview");
+    if (fileInput) {
+      fileInput.addEventListener("change", () => {
+        const file = fileInput.files && fileInput.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          const dataUrl = e.target.result;
+          photoHidden.value = dataUrl;
+          preview.src = dataUrl;
+          preview.classList.remove("hidden");
+        };
+        reader.readAsDataURL(file);
+      });
+    }
     return;
   }
 
-  const items = mergedAttractions().filter(passesProfileFilters);
-  const filterChip = (k,label,color) => `<button class="profile-filter-chip ${appState.ui.selectedProfileGroup === k ? "active" : ""}" style="${appState.ui.selectedProfileGroup === k ? `background:${color};border-color:${color};color:#fff` : "color:#8d877d"}" data-action="set-profile-group" data-filter="${k}">${label}</button>`;
+  // "My gems" = only session-created gems
+  const myGems = appState.data.communityGems.filter(g => SESSION_GEM_IDS.has(g.id));
+  const items = appState.ui.selectedProfileGroup === "mine"
+    ? myGems
+    : mergedAttractions().filter(passesProfileFilters);
+
+  const filterChip = (k,label,color) => {
+    const count = k === "mine" ? myGems.length
+      : k === "liked" ? appState.userActions.liked.size
+      : k === "saved" ? appState.userActions.saved.size
+      : appState.userActions.visited.size;
+    return `<button class="profile-filter-chip ${appState.ui.selectedProfileGroup === k ? "active" : ""}" style="${appState.ui.selectedProfileGroup === k ? `background:${color};border-color:${color};color:#fff` : "color:#8d877d"}" data-action="set-profile-group" data-filter="${k}">${label} (${count})</button>`;
+  };
+
   if (appState.ui.profileSettingsMode) {
     cont.innerHTML = `<div class="detail-grid"><div class="section-title">Profile settings</div><div class="small-note">Use Preferences to tune rankings and categories. Saved gems stay here in your profile.</div></div>`;
     return;
   }
 
+  // Route button — only show when >= 2 gems saved
+  const savedCount = appState.userActions.saved.size;
+  const routeBtn = savedCount >= 2
+    ? `<button class="community-btn" style="background:linear-gradient(135deg,#0F52BA 0%,#00B571 100%)" data-action="generate-route">🗺 Generate Route (${Math.min(savedCount,5)} gems)</button>`
+    : `<div class="small-note">Save at least 2 gems to generate a route.</div>`;
+
   const actionSymbols = (a) => {
-    if (appState.ui.selectedProfileGroup === "liked") return `${actionIconBtn("like", a.id, true)} ${actionIconBtn("visit", a.id, appState.userActions.visited.has(a.id))}`;
-    if (appState.ui.selectedProfileGroup === "saved") return `${actionIconBtn("save", a.id, true)} ${actionIconBtn("visit", a.id, appState.userActions.visited.has(a.id))}`;
-    if (appState.ui.selectedProfileGroup === "visited") return `${actionIconBtn("like", a.id, appState.userActions.liked.has(a.id))} ${actionIconBtn("visit", a.id, true)}`;
+    const isMine = SESSION_GEM_IDS.has(a.id);
+    const editBtn = isMine ? `<button class="act-btn" data-action="edit-community-gem" data-id="${escapeHtml(a.id)}">✏ Edit</button>` : "";
+    const delBtn  = isMine ? `<button class="act-btn" data-action="delete-community-gem" data-id="${escapeHtml(a.id)}">✕ Delete</button>` : "";
+    if (appState.ui.selectedProfileGroup === "liked")   return `${actionIconBtn("like", a.id, true)} ${actionIconBtn("visit", a.id, appState.userActions.visited.has(a.id))} ${editBtn} ${delBtn}`;
+    if (appState.ui.selectedProfileGroup === "saved")   return `${actionIconBtn("save", a.id, true)} ${actionIconBtn("visit", a.id, appState.userActions.visited.has(a.id))} ${editBtn} ${delBtn}`;
+    if (appState.ui.selectedProfileGroup === "visited") return `${actionIconBtn("like", a.id, appState.userActions.liked.has(a.id))} ${actionIconBtn("visit", a.id, true)} ${editBtn} ${delBtn}`;
+    if (appState.ui.selectedProfileGroup === "mine")    return `${editBtn} ${delBtn}`;
     return "";
   };
 
-  const cards = items.length ? items.map(a => `
+  const cards = items.length ? items.map(a => {
+    const color = markerColor(a);
+    const dotStyle = String(color).includes("gradient")
+      ? `background:linear-gradient(135deg,#E0115F 0%,#0F52BA 50%,#00B571 100%)`
+      : `background:${color}`;
+    return `
     <article class="attn-card" tabindex="0" data-action="select-attraction" data-id="${escapeHtml(a.id)}">
       <div class="attn-head">
         <div>
           <h3 class="attn-title">${escapeHtml(a.name)}</h3>
-          <div class="attn-meta"><span class="gem-dot" style="background:${String(markerColor(a)).includes("gradient") ? "#8D877D" : markerColor(a)}"></span><span>${escapeHtml(a.category || "Attraction")}</span></div>
+          <div class="attn-meta"><span class="gem-dot" style="${dotStyle}"></span><span>${escapeHtml(a.category || "Attraction")}</span></div>
         </div>
-        ${a.isCommunity ? `<button class="link-btn" data-action="delete-community-gem" data-id="${escapeHtml(a.id)}">Delete</button>` : ""}
       </div>
       <div class="actions-row">${actionSymbols(a)}</div>
-    </article>`).join("") : `<div class="small-note">No places in this group yet.</div>`;
+    </article>`;
+  }).join("") : `<div class="small-note">No places in this group yet.</div>`;
 
   cont.innerHTML = `
     <div class="detail-grid">
@@ -1327,14 +1451,15 @@ function renderProfile(){
         ${profileChip(`Liked ${appState.userActions.liked.size}`)}
         ${profileChip(`Saved ${appState.userActions.saved.size}`)}
         ${profileChip(`Visited ${appState.userActions.visited.size}`)}
-        ${profileChip(`Community ${appState.data.communityGems.length}`)}
+        ${profileChip(`My Gems ${myGems.length}`)}
       </div>
       <div class="profile-filter-row">
         ${filterChip("liked","Liked","#E0115F")}
         ${filterChip("saved","Saved","#0F52BA")}
         ${filterChip("visited","Visited","#00B571")}
-        ${filterChip("mine","My gems","#6C5CE7")}
+        ${filterChip("mine","My Gems","#6C5CE7")}
       </div>
+      ${appState.ui.selectedProfileGroup === "saved" ? routeBtn : ""}
       <div class="attn-list">${cards}</div>
     </div>`;
   setCommunityButtonStyle();
@@ -1605,61 +1730,251 @@ function cancelCommunityGem(){
   updateApp();
 }
 function saveCommunityGem(){
-  const name = document.getElementById("cg_name")?.value?.trim();
-  const tag = document.getElementById("cg_tag")?.value?.trim() || "Community tag";
+  const form = document.getElementById("communityGemForm");
+  const editId = form ? form.dataset.editId : "";
+  const name    = document.getElementById("cg_name")?.value?.trim();
+  const tag     = document.getElementById("cg_tag")?.value?.trim() || "Community tag";
   const summary = document.getElementById("cg_summary")?.value?.trim() || "";
-  const err = document.getElementById("communityFormError");
+  const photo   = document.getElementById("cg_photo")?.value?.trim() || "";
+  const err     = document.getElementById("communityFormError");
+
   if (!name) { if (err) err.textContent = "Name is required."; return; }
+
+  if (editId) {
+    // Editing existing gem
+    const gem = appState.data.communityGems.find(g => g.id === editId);
+    if (gem) {
+      gem.name = name;
+      gem.category = tag;
+      gem.summary = summary;
+      if (photo) gem.photo = photo;
+    }
+    appState.ui.editingCommunityGemId = null;
+    appState.ui.addingCommunityGem = false;
+    appState.map.pendingCommunityLngLat = null;
+    appState.ui.communityDraftGradient = null;
+    restoreViewAfterCommunityGem();
+    updateApp();
+    return;
+  }
+
   if (!appState.map.pendingCommunityLngLat) { if (err) err.textContent = "Click the map first to set location."; return; }
 
   const dims = {}; Object.keys(DIMENSIONS).forEach(k => { dims[k] = 10; });
   const [lng,lat] = appState.map.pendingCommunityLngLat;
   const grad = appState.ui.communityDraftGradient || pickCommunityGradient();
   const id = "community_" + Date.now();
-  // At the end of saveCommunityGem(), REPLACE the local push with:
-  const gemData = {
-    id: "community_" + Date.now(),  // local id placeholder
-    name, category: tag, gem:"community", gemColor: grad,
-    rankable:true, hidden_gem:true, summary, avg_score:10, lat, lng, dims, evids:{},
-    photo:"", gm_rating:null, gm_reviews:null, address:"", hours:"",
-    reviews:[], area:"Community submission", distance:"", sources:"Local user input",
-    gm_url:"", ta_url:"", trip_url:"", popularity:2, isCommunity:true,
-    authorUid: currentUid || "anonymous",
-    createdAt: Date.now()
-  };
 
-  if (db) {
-    // Save to Firestore — onSnapshot will update appState automatically
-    db.collection("communityGems").add(gemData)
-      .catch(err => console.warn("Firestore write failed:", err));
-  } else {
-    // Fallback: local-only mode
-    appState.data.communityGems.push({ ...gemData });
-  }
+  appState.data.communityGems.push({
+    id, name, category: tag, gem:"community", gemColor:grad,
+    rankable:true, hidden_gem:true, summary, avg_score:10, lat, lng, dims, evids:{},
+    photo, gm_rating:null, gm_reviews:null, address:"", hours:"",
+    reviews:[], area:"Community submission", distance:"", sources:"Local user input",
+    gm_url:"", ta_url:"", trip_url:"", popularity:2, isCommunity:true
+  });
+  SESSION_GEM_IDS.add(id);
 
   appState.ui.addingCommunityGem = false;
+  appState.ui.editingCommunityGemId = null;
   appState.map.pendingCommunityLngLat = null;
   appState.ui.communityDraftGradient = null;
   restoreViewAfterCommunityGem();
   updateApp();
 }
 function deleteCommunityGem(id){
-  if (db) {
-    db.collection("communityGems").doc(id)
-      .delete()
-      .catch(err => {
-        // If doc doesn't exist (local-only gem), just remove locally
-        appState.data.communityGems = appState.data.communityGems.filter(g => g.id !== id);
-        updateApp();
-      });
-    // onSnapshot will remove it from appState automatically
-  } else {
-    appState.data.communityGems = appState.data.communityGems.filter(g => g.id !== id);
-  }
+  appState.data.communityGems = appState.data.communityGems.filter(g => g.id !== id);
+  SESSION_GEM_IDS.delete(id);
   appState.userActions.liked.delete(id);
   appState.userActions.saved.delete(id);
   appState.userActions.visited.delete(id);
   if (appState.ui.selectedAttractionId === id) appState.ui.selectedAttractionId = null;
+  updateApp();
+}
+function editCommunityGem(id){
+  if (!SESSION_GEM_IDS.has(id)) return; // only session gems editable
+  const gem = appState.data.communityGems.find(g => g.id === id);
+  if (!gem) return;
+  appState.ui.editingCommunityGemId = id;
+  appState.ui.addingCommunityGem = true;
+  appState.ui.profileSettingsMode = false;
+  appState.ui.selectedProfileGroup = "mine";
+  // Reuse the gem's existing location
+  appState.map.pendingCommunityLngLat = [gem.lng, gem.lat];
+  appState.ui.communityDraftGradient = gem.gemColor || pickCommunityGradient();
+  if (!appState.ui.previousViewState) {
+    appState.ui.previousViewState = {
+      activeTab: appState.ui.activeTab,
+      selectedAttractionId: appState.ui.selectedAttractionId,
+      viewMode: appState.ui.viewMode,
+      selectedNeighborhoodId: appState.ui.selectedNeighborhoodId,
+      selectedNeighborhoodName: appState.ui.selectedNeighborhoodName
+    };
+  }
+  setActiveTab("profile");
+  updateApp();
+}
+
+// ── Route generation ──────────────────────────────────────────────────────
+function haversineKm(a, b){
+  const R = 6371;
+  const dLat = (b.lat - a.lat) * Math.PI / 180;
+  const dLng = (b.lng - a.lng) * Math.PI / 180;
+  const sin2 = Math.sin(dLat/2)**2 + Math.cos(a.lat*Math.PI/180)*Math.cos(b.lat*Math.PI/180)*Math.sin(dLng/2)**2;
+  return R * 2 * Math.asin(Math.sqrt(sin2));
+}
+
+function permutations(arr){
+  if (arr.length <= 1) return [arr];
+  const result = [];
+  for (let i = 0; i < arr.length; i++){
+    const rest = [...arr.slice(0,i), ...arr.slice(i+1)];
+    for (const p of permutations(rest)) result.push([arr[i], ...p]);
+  }
+  return result;
+}
+
+function routeDistance(pts){
+  let d = 0;
+  for (let i = 0; i < pts.length - 1; i++) d += haversineKm(pts[i], pts[i+1]);
+  return d;
+}
+
+function bestOrder(pts){
+  let best = null, bestDist = Infinity;
+  for (const perm of permutations(pts)){
+    const d = routeDistance(perm);
+    if (d < bestDist){ bestDist = d; best = perm; }
+  }
+  return best;
+}
+
+function clusterSelect(all, n){
+  // Pick n gems from all that are geographically tightest
+  if (all.length <= n) return all;
+  let bestCluster = null, bestAvg = Infinity;
+  for (let i = 0; i < all.length; i++){
+    const others = all.filter((_,j) => j !== i);
+    others.sort((a,b) => haversineKm(all[i],a) - haversineKm(all[i],b));
+    const group = [all[i], ...others.slice(0, n-1)];
+    const avg = routeDistance(group) / (group.length - 1);
+    if (avg < bestAvg){ bestAvg = avg; bestCluster = group; }
+  }
+  return bestCluster;
+}
+
+async function generateRoute(){
+  const savedIds = [...appState.userActions.saved];
+  const candidates = mergedAttractions()
+    .filter(a => savedIds.includes(a.id) && a.lat != null && a.lng != null && !a.isPolygon)
+    .map(a => ({ ...a, lat: Number(a.lat), lng: Number(a.lng) }));
+
+  if (candidates.length < 2) return;
+
+  const cluster = clusterSelect(candidates, Math.min(5, candidates.length));
+  const ordered = bestOrder(cluster);
+
+  appState.ui.routeMode = true;
+  appState.ui.routeGemIds = ordered.map(g => g.id);
+  appState.ui.routeOrdered = ordered;
+
+  // Fit map to route bounds
+  const map = appState.map.instance;
+  if (map){
+    const lngs = ordered.map(g => g.lng);
+    const lats = ordered.map(g => g.lat);
+    map.fitBounds(
+      [[Math.min(...lngs), Math.min(...lats)], [Math.max(...lngs), Math.max(...lats)]],
+      { padding: 60, maxZoom: 14, duration: 550 }
+    );
+  }
+
+  await drawRouteOnMap(ordered);
+  renderRouteBanner(ordered);
+  updateApp();
+}
+
+async function drawRouteOnMap(ordered){
+  const map = appState.map.instance;
+  if (!map) return;
+
+  // Remove old route layers/sources
+  clearRouteFromMap();
+
+  // Try Mapbox Directions API (walking)
+  try {
+    const coords = ordered.map(g => `${g.lng},${g.lat}`).join(";");
+    const url = `https://api.mapbox.com/directions/v5/mapbox/walking/${coords}?geometries=geojson&access_token=${MAPBOX_TOKEN}`;
+    const res = await fetch(url);
+    if (res.ok){
+      const data = await res.json();
+      const geometry = data.routes && data.routes[0] && data.routes[0].geometry;
+      if (geometry){
+        addRouteLayer(geometry);
+        return;
+      }
+    }
+  } catch(_e){}
+
+  // Fallback: straight-line polyline
+  addRouteLayer({
+    type: "LineString",
+    coordinates: ordered.map(g => [g.lng, g.lat])
+  });
+}
+
+function addRouteLayer(geometry){
+  const map = appState.map.instance;
+  if (!map) return;
+  if (map.getSource("route-line")) {
+    map.getSource("route-line").setData({ type: "Feature", geometry });
+  } else {
+    map.addSource("route-line", { type: "geojson", data: { type: "Feature", geometry } });
+    map.addLayer({
+      id: "route-line-casing", type: "line", source: "route-line",
+      paint: { "line-color": "#fff", "line-width": 6, "line-opacity": 0.7 }
+    });
+    map.addLayer({
+      id: "route-line-fill", type: "line", source: "route-line",
+      paint: {
+        "line-color": "#0F52BA",
+        "line-width": 3.5,
+        "line-dasharray": [2, 1.5],
+        "line-opacity": 0.95
+      }
+    });
+  }
+}
+
+function clearRouteFromMap(){
+  const map = appState.map.instance;
+  if (!map) return;
+  ["route-line-fill","route-line-casing"].forEach(id => { try{ map.removeLayer(id); }catch(_e){} });
+  try{ map.removeSource("route-line"); }catch(_e){}
+}
+
+function renderRouteBanner(ordered){
+  // Remove existing banner
+  document.getElementById("routeBanner")?.remove();
+  if (!appState.ui.routeMode) return;
+  const totalKm = routeDistance(ordered).toFixed(1);
+  const mapWrap = document.querySelector(".map-wrap");
+  if (!mapWrap) return;
+  const banner = document.createElement("div");
+  banner.id = "routeBanner";
+  banner.className = "route-banner";
+  banner.innerHTML = `
+    🗺 Route: ${ordered.length} gems · ${totalKm} km (walking)
+    <button data-action="clear-route">✕ Standard mode</button>
+  `;
+  mapWrap.appendChild(banner);
+}
+
+function clearRoute(){
+  appState.ui.routeMode = false;
+  appState.ui.routeGemIds = [];
+  appState.ui.routeOrdered = [];
+  clearRouteFromMap();
+  document.getElementById("routeBanner")?.remove();
   updateApp();
 }
 function setProfileGroup(k){
@@ -1739,6 +2054,7 @@ function bindDelegatedEvents(){
     if (action === "toggle-gem-family") return toggleGemFamily(btn.dataset.key);
     if (action === "start-community-gem"){ if (btn.classList.contains("disabled")) return; return startCommunityGemMode(); }
     if (action === "cancel-community-gem") return cancelCommunityGem();
+    if (action === "edit-community-gem") return editCommunityGem(btn.dataset.id);
     if (action === "delete-community-gem") return deleteCommunityGem(btn.dataset.id);
     if (action === "set-profile-group") return setProfileGroup(btn.dataset.filter);
     if (action === "open-profile") return openProfileFromMenu(btn.dataset.profileTab);
