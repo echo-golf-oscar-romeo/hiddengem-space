@@ -1080,15 +1080,18 @@ function renderMap(list) {
     const hasPhoto = !!a.photo;
     const isEditing = appState.ui.editingCommunityGemId === a.id;
     
-    if ((isPhotoTop || isCommunityGem) && hasPhoto) {
+    if (isCommunityGem && hasPhoto) {
       inner.classList.add("photo-marker");
       inner.style.backgroundImage = `url(${a.photo})`;
       inner.style.backgroundSize = "cover";
       inner.style.backgroundPosition = "center";
-      // Always use community dark-blue outline, not gradient
       inner.style.border = `2px solid ${/gradient/.test(String(color)) ? "#0F52BA" : color}`;
-      // No orbit ring on top when editing
-      if (!isEditing) inner.style.boxShadow = `0 0 0 3px rgba(15,82,186,0.35)`;
+    } else if (isPhotoTop && hasPhoto) {
+      inner.classList.add("photo-marker");
+      inner.style.backgroundImage = `url(${a.photo})`;
+      inner.style.backgroundSize = "cover";
+      inner.style.backgroundPosition = "center";
+      inner.style.border = `2px solid #fff`;
     } else if (isCommunityGem && !hasPhoto) {
       inner.classList.add("community-orbit");
     } else if (isOrbitTop) {
@@ -1120,20 +1123,6 @@ function renderMap(list) {
       .addTo(map);
 
     appState.map.markerIndex.set(a.id, marker);
-
-    const profileActive = !!appState.ui.selectedProfileGroup;
-    const profileIds = profileActive ? new Set(
-      mergedAttractions()
-        .filter(passesProfileFilters)
-        .map(a => a.id)
-    ) : null;
-    
-    // Then when setting marker element opacity:
-    if (profileIds) {
-      el.style.opacity = profileIds.has(a.id) ? "1" : "0.18";
-    } else {
-      el.style.opacity = "1";  // standard view, all normal
-    }
   });
 
   if (appState.ui.addingCommunityGem && appState.map.pendingCommunityLngLat) {
@@ -1859,13 +1848,19 @@ function saveCommunityGem(){
   if (!name) { if (err) err.textContent = "Name is required."; return; }
 
   if (editId) {
-    // Editing existing gem
     const gem = appState.data.communityGems.find(g => g.id === editId);
     if (gem) {
       gem.name = name;
       gem.category = tag;
       gem.summary = summary;
       if (photo) gem.photo = photo;
+  
+      if (db) {
+        const updates = { name, category: tag, summary: summary || "" };
+        if (photo) updates.photo = photo;
+        db.collection("communityGems").doc(editId).update(updates)
+          .catch(err => console.warn("Firestore update failed:", err));
+      }
     }
     appState.ui.editingCommunityGemId = null;
     appState.ui.addingCommunityGem = false;
@@ -1883,14 +1878,70 @@ function saveCommunityGem(){
   const grad = appState.ui.communityDraftGradient || pickCommunityGradient();
   const id = "community_" + Date.now();
 
-  appState.data.communityGems.push({
-    id, name, category: tag, gem:"community", gemColor:grad,
-    rankable:true, hidden_gem:true, summary, avg_score:10, lat, lng, dims, evids:{},
-    photo, gm_rating:null, gm_reviews:null, address:"", hours:"",
-    reviews:[], area:"Community submission", distance:"", sources:"Local user input",
-    gm_url:"", ta_url:"", trip_url:"", popularity:2, isCommunity:true
-  });
-  SESSION_GEM_IDS.add(id);
+  const dims = {};
+  Object.keys(DIMENSIONS).forEach(k => dims[k] = 10);
+  
+  const [lng, lat] = appState.map.pendingCommunityLngLat;
+  const grad = appState.ui.communityDraftGradient || pickCommunityGradient();
+  const id = "community_" + Date.now();
+  
+  const gemData = {
+    id,
+    name,
+    category: tag,
+    gem: "community",
+    gemColor: grad,
+    rankable: true,
+    hiddengem: true,
+    summary: summary || "",
+    avgscore: 10,
+    lat,
+    lng,
+    dims,
+    evids: [],
+    photo: photo || "",
+    gmrating: null,
+    gmreviews: null,
+    address: "",
+    hours: "",
+    reviews: [],
+    area: "Community submission",
+    distance: "",
+    sources: ["Local user input"],
+    gmurl: "",
+    taurl: "",
+    tripurl: "",
+    popularity: 2,
+    isCommunity: true,
+    authorUid: currentUid || "anon",
+    createdAt: Date.now()
+  };
+  
+  if (db) {
+    // Write to Firestore — onSnapshot will update communityGems automatically
+    db.collection("communityGems").doc(id).set(gemData)
+      .catch(err => console.warn("Firestore write failed:", err));
+  } else {
+    // No Firebase — push locally only
+    appState.data.communityGems.push(gemData);
+  }
+  SESSIONGEMIDS.add(id);
+
+  // Write new gem to Firestore (including photo)
+  if (db) {
+    db.collection("communityGems").doc(id).set({
+      id, name, category: tag, gem: "community", gemColor: grad,
+      rankable: true, hiddengem: true, summary,
+      avgscore: 10, lat, lng, dims, evids: [],
+      photo: photo || "",
+      gmrating: null, gmreviews: null, address: "", hours: "",
+      reviews: [], area: "Community submission", distance: "",
+      sources: ["Local user input"], gmurl: "", taurl: "", tripurl: "",
+      popularity: 2, isCommunity: true,
+      authorUid: currentUid || "anon",
+      createdAt: firebase.firestore.FieldValue.serverTimestamp()
+    }).catch(err => console.warn("Firestore write failed:", err));
+  }
 
   appState.ui.addingCommunityGem = false;
   appState.ui.editingCommunityGemId = null;
