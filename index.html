@@ -1091,7 +1091,7 @@ function renderMap(list) {
       inner.style.backgroundImage = `url(${a.photo})`;
       inner.style.backgroundSize = "cover";
       inner.style.backgroundPosition = "center";
-      inner.style.border = `2px solid #fff`;
+      inner.style.border = `2px solid ${/gradient/.test(String(color)) ? "#0F52BA" : color}`;
     } else if (isCommunityGem && !hasPhoto) {
       inner.classList.add("community-orbit");
     } else if (isOrbitTop) {
@@ -1920,7 +1920,7 @@ function saveCommunityGem(){
     // No Firebase — push locally only
     appState.data.communityGems.push(gemData);
   }
-  SESSIONGEMIDS.add(id);
+  SESSION_GEM_IDS.add(id);
 
   // Write new gem to Firestore (including photo)
   if (db) {
