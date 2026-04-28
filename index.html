@@ -493,7 +493,7 @@ input[type=range]::-webkit-slider-thumb:hover{transform:scale(1.06)}
           <path d='M50 20 L79 50 L50 80 L21 50 Z' stroke='#8D877D' stroke-width='4' stroke-linejoin='round' opacity='0.72'></path>
         </svg>
       </div>
-      <div class='logo-title'>Hidden Gems · Hong Kong</div>
+      <div class='logo-title'>Hidden Gem</div>
     </div>
     <div></div>
     <div class='top-actions'>
@@ -1668,15 +1668,14 @@ function drawRouteOnMap(ordered){
   map.fitBounds([[Math.min(...lngs), Math.min(...lats)],[Math.max(...lngs), Math.max(...lats)]], { padding: 60, maxZoom: 15, duration: 500 });
 }
 
-function clearRoute(){
+function clearRoute() {
+  appState.ui.routeMode = false;
+  appState.ui.routeGemIds = [];
+  appState.ui.routeOrdered = [];
   appState.ui.activeRoute = null;
-  const map = appState.map.instance;
-  if (map){
-    if (map.getLayer("route-line")) map.removeLayer("route-line");
-    if (map.getLayer("route-line-bg")) map.removeLayer("route-line-bg");
-    if (map.getSource("route")) map.removeSource("route");
-  }
-  setActiveTab("list");
+  clearRouteFromMap();
+  document.getElementById("routeBanner")?.remove();
+  setActiveTab("list");  // ← this is the key missing line
   updateApp();
 }
 
