@@ -1139,41 +1139,77 @@ function renderGemChips(targetId){
 function renderDrawerProfilePanel(){
   const wrap = document.getElementById("drawerSavedWrap");
   if (!wrap) return;
-
   const g = appState.ui.selectedProfileGroup;
+  const myGems = appState.data.communityGems.filter(c => SESSION_GEM_IDS.has(c.id));
   const countByGroup = {
     liked: appState.userActions.liked.size,
     saved: appState.userActions.saved.size,
     visited: appState.userActions.visited.size,
-    mine: appState.data.communityGems.length
+    mine: myGems.length
+  };
+  const filterChip = (k, label, color) =>
+    `<button class="profile-filter-chip ${g===k?'active':''}"
+      style="${g===k?`background:${color};border-color:${color};color:#fff`:'color:#8d877d'}"
+      data-action="set-profile-group" data-filter="${k}">${label} (${countByGroup[k]||0})</button>`;
+
+  const items = g === "mine"
+    ? myGems
+    : mergedAttractions().filter(passesProfileFilters);
+
+  const actionSymbols = (a) => {
+    const isMine = SESSION_GEM_IDS.has(a.id);
+    const editBtn = isMine ? `<button class="act-btn" data-action="edit-community-gem" data-id="${escapeHtml(a.id)}">✏</button>` : "";
+    const delBtn  = isMine ? `<button class="act-btn" data-action="delete-community-gem" data-id="${escapeHtml(a.id)}">✕</button>` : "";
+    if (g === "liked")   return actionIconBtn("like",""+a.id,true) + actionIconBtn("visit",""+a.id,appState.userActions.visited.has(a.id)) + editBtn + delBtn;
+    if (g === "saved")   return actionIconBtn("save",""+a.id,true) + actionIconBtn("visit",""+a.id,appState.userActions.visited.has(a.id)) + editBtn + delBtn;
+    if (g === "visited") return actionIconBtn("like",""+a.id,appState.userActions.liked.has(a.id)) + actionIconBtn("visit",""+a.id,true) + editBtn + delBtn;
+    if (g === "mine")    return editBtn + delBtn;
+    return "";
   };
 
-  const filterChip = (k,label,color) => `<button class="profile-filter-chip ${g === k ? "active" : ""}" style="${g === k ? `background:${color};border-color:${color};color:#fff` : "color:#8d877d"}" data-action="set-profile-group" data-filter="${k}">${label} (${countByGroup[k] || 0})</button>`;
+  const cards = items.length
+    ? items.slice(0,24).map(a => {
+        const color = markerColor(a);
+        const dotStyle = String(color).includes("gradient")
+          ? `background:linear-gradient(135deg,#E0115F 0%,#0F52BA 50%,#00B571 100%)`
+          : `background:${color}`;
+        return `
+        <article class="attn-card" tabindex="0" data-action="select-attraction" data-id="${escapeHtml(a.id)}">
+          <div class="attn-head">
+            <div>
+              <h3 class="attn-title">${escapeHtml(a.name)}</h3>
+              <div class="attn-meta"><span class="gem-dot" style="${dotStyle}"></span><span>${escapeHtml(a.category||"Attraction")}</span></div>
+            </div>
+          </div>
+          <div class="actions-row">${actionSymbols(a)}</div>
+        </article>`;
+      }).join("")
+    : `<div class="small-note">No places in this group yet.</div>`;
 
-  const items = mergedAttractions().filter(passesProfileFilters);
-  const cards = items.length ? items.slice(0, 24).map(a => `
-    <article class="attn-card" tabindex="0" data-action="select-attraction" data-id="${escapeHtml(a.id)}">
-      <div class="attn-head">
-        <div>
-          <h3 class="attn-title">${escapeHtml(a.name)}</h3>
-          <div class="attn-meta"><span class="gem-dot" style="background:${String(markerColor(a)).includes("gradient") ? "#8D877D" : markerColor(a)}"></span><span>${escapeHtml(a.category || "Attraction")}</span></div>
-        </div>
-      </div>
-    </article>
-  `).join("") : `<div class="small-note">No places in this group yet.</div>`;
+  // Route button — shown only in "saved" tab and when >= 2 saved gems
+  const savedCount = appState.userActions.saved.size;
+  const routeSection = (g === "saved")
+    ? (savedCount >= 2
+        ? `<button class="community-btn" style="margin-bottom:4px;background:linear-gradient(135deg,#0F52BA 0%,#00B571 100%)" data-action="generate-route">🗺 Generate Route (${Math.min(savedCount,5)})</button>`
+        : `<div class="small-note" style="margin-bottom:4px">Save at least 2 gems to generate a route.</div>`)
+    : "";
 
   wrap.innerHTML = `
-    <div class="detail-grid">
-      <div class="profile-filter-row">
-        ${filterChip("liked","Liked","#E0115F")}
-        ${filterChip("saved","Saved","#0F52BA")}
-        ${filterChip("visited","Visited","#00B571")}
-        ${filterChip("mine","My gems","#6C5CE7")}
-      </div>
-      <div class="small-note"><strong>${items.length}</strong> places in this group.</div>
-      <div class="attn-list">${cards}</div>
+    <div class="section-title">My Profile</div>
+    <div class="profile-stats">
+      ${profileChip(`Liked ${countByGroup.liked}`)}
+      ${profileChip(`Saved ${countByGroup.saved}`)}
+      ${profileChip(`Visited ${countByGroup.visited}`)}
+      ${profileChip(`My Gems ${countByGroup.mine}`)}
     </div>
-  `;
+    <div class="profile-filter-row">
+      ${filterChip("liked","Liked","#E0115F")}
+      ${filterChip("saved","Saved","#0F52BA")}
+      ${filterChip("visited","Visited","#00B571")}
+      ${filterChip("mine","My Gems","#6C5CE7")}
+    </div>
+    ${routeSection}
+    <div class="attn-list">${cards}</div>`;
 }
 
 function renderDrawerPanels(){
@@ -1191,7 +1227,7 @@ function renderAllPreferenceUI(){
   renderGemChips("onboardingGemChips");
   renderGemChips("drawerGemChips");
   renderDrawerPanels();
-  renderDrawerProfilePanel();
+  renderDrawerProfilePanel();  // ← add if not already here
 }
 
 function renderNicheQuestionBox(){
@@ -1350,10 +1386,10 @@ function communityFormHtml(editGem){
 
 function passesProfileFilters(a){
   const g = appState.ui.selectedProfileGroup;
-  if (g === "liked") return appState.userActions.liked.has(a.id);
-  if (g === "saved") return appState.userActions.saved.has(a.id);
+  if (g === "liked")   return appState.userActions.liked.has(a.id);
+  if (g === "saved")   return appState.userActions.saved.has(a.id);
   if (g === "visited") return appState.userActions.visited.has(a.id);
-  if (g === "mine") return !!a.isCommunity;
+  if (g === "mine")    return SESSION_GEM_IDS.has(a.id);
   return false;
 }
 
@@ -1980,6 +2016,8 @@ function clearRoute(){
 function setProfileGroup(k){
   appState.ui.profileSettingsMode = false;
   appState.ui.selectedProfileGroup = k;
+  renderDrawerProfilePanel();   // ← this was missing
+  if (appState.ui.activeTab === "profile") renderProfile();
   updateApp();
 }
 function openProfileFromMenu(tab){
