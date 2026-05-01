@@ -1,0 +1,2345 @@
+<!DOCTYPE html>
+<html lang='en'>
+<head>
+<meta charset='UTF-8'/>
+<meta name='viewport' content='width=device-width,initial-scale=1.0'/>
+<title>HIDDEN GEM</title>
+
+<link rel='preconnect' href='https://fonts.googleapis.com'>
+<link rel='preconnect' href='https://fonts.gstatic.com' crossorigin>
+<link href='https://api.fontshare.com/v2/css?f[]=satoshi@400,500,700,900&display=swap' rel='stylesheet'>
+<link href='https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.css' rel='stylesheet' />
+<script src='https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.js'></script>
+
+<!-- Firebase SDK (compat v10) -->
+<script src='https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js'></script>
+<script src='https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js'></script>
+<script src='https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js'></script>
+
+
+<!-- ===================================================================== -->
+<!-- <!-- ===================================================================== -->
+<!-- BLOCK 3: DESIGN SETTINGS & GLOBAL CSS (REWRITE) -->
+<!-- ===================================================================== -->
+<style>
+:root{
+  --bg:#F9F8F4;
+  --bg-soft:#F3F1EA;
+  --panel:rgba(255,255,255,.9);
+  --text:#1A1A1A;
+  --muted:#66625A;
+  --faint:#A49D92;
+  --line:#E5E5E5;
+  --shadow:0 14px 34px rgba(26,26,26,.07);
+  --radius-lg:20px;
+  --radius-md:14px;
+  --radius-sm:10px;
+  --ruby:#E0115F;
+  --sapphire:#0F52BA;
+  --emerald:#00B571;
+  --amber:#FFBF00;
+  --amethyst:#9966CC;
+  --aquamarine:#00BFBF;
+  --rose:#E27396;
+  --onyx:#0A0A0A;
+  --font-ui:"Satoshi","Inter",system-ui,sans-serif;
+  --font-serif:"Georgia",serif;
+}
+*{box-sizing:border-box}
+html,body{margin:0;width:100%;height:100%;overflow:hidden;background:var(--bg);font-family:var(--font-ui);color:var(--text)}
+button,input,select,textarea{font:inherit}
+a{text-decoration:none;color:inherit}
+.hidden{display:none!important}
+
+body::before{
+  content:"";
+  position:fixed; inset:0;
+  background:
+    radial-gradient(circle at top left,rgba(224,17,95,.035),transparent 24%),
+    radial-gradient(circle at bottom right,rgba(15,82,186,.035),transparent 24%);
+  pointer-events:none;
+}
+
+.app{
+  width:100vw;height:100vh;
+  display:grid;
+  grid-template-rows:auto 1fr;
+  gap:12px;padding:14px;
+  transition:padding-right .24s ease;
+}
+body.prefs-open .app{ padding-right: 370px; }
+
+.topbar,.view-card,.map-wrap,.onboarding-card,.prefs-panel{
+  background:var(--panel);
+  border:1px solid rgba(255,255,255,.75);
+  box-shadow:var(--shadow);
+  backdrop-filter:blur(14px);
+}
+.topbar{
+  border-radius:var(--radius-lg);
+  padding:12px 14px;
+  display:grid;grid-template-columns:auto 1fr auto;gap:12px;align-items:center;
+}
+.logo-row{display:flex;align-items:center;gap:10px}
+.logo-mark{
+  width:38px;height:38px;border-radius:12px;background:#fff;border:1px solid rgba(0,0,0,.05);
+  display:grid;place-items:center;
+}
+.logo-title{font-size:21px;font-weight:900;letter-spacing:-.02em}
+.top-actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.icon-only{
+  width:36px;height:36px;border-radius:11px;border:1px solid rgba(0,0,0,.07);background:#fff;cursor:pointer;
+  display:grid;place-items:center;
+  transition:transform .18s ease, box-shadow .2s ease, background .2s ease;
+}
+.icon-only:hover{transform:translateY(-1px);box-shadow:0 8px 18px rgba(26,26,26,.11)}
+
+.main-grid{min-height:0;display:grid;grid-template-columns:1.95fr 1fr;gap:14px}
+.map-wrap{min-height:0;position:relative;overflow:hidden;border-radius:22px}
+#map{width:100%;height:100%;min-height:66vh}
+
+.legend-toggle{
+  position:absolute;left:10px;bottom:10px;z-index:7;
+  width:30px;height:30px;border-radius:999px;
+}
+.map-legend{
+  position:absolute;left:10px;bottom:48px;z-index:7;width:180px;border-radius:12px;padding:10px;
+  background:rgba(255,255,255,.95);border:1px solid rgba(0,0,0,.07);box-shadow:0 10px 22px rgba(26,26,26,.1);
+  animation:fadeUp .2s ease;
+}
+.legend-row{
+  display:grid;grid-template-columns:11px 1fr;gap:8px;align-items:center;
+  font-size:11px;color:var(--muted);margin-top:6px
+}
+.legend-dot{width:9px;height:9px;border-radius:999px}
+
+.side-panel{min-height:0;display:grid;grid-template-rows:auto auto auto auto;gap:10px;align-content:start}
+.tab-bar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;justify-content:space-between}
+.view-mode-row{margin-top:-2px}
+.view-mode-row .chip.active{background:var(--onyx);color:#fff;border-color:var(--onyx)}
+.tab{
+  border:none;border-radius:999px;padding:9px 13px;background:#fff;border:1px solid rgba(0,0,0,.06);
+  cursor:pointer;font-weight:700;color:var(--muted);font-size:13px;
+  transition:all .18s ease;
+}
+.tab.active{background:var(--onyx);color:#fff;border-color:var(--onyx)}
+
+.niche-feedback-row{display:flex;gap:8px;flex-wrap:wrap}
+.niche-feedback{
+  border:1px solid rgba(0,0,0,.08);background:#fff;border-radius:999px;padding:7px 10px;
+  cursor:pointer;font-size:11px;font-weight:700;color:var(--muted);
+  transition:all .18s ease;
+}
+.niche-feedback:hover{color:var(--text);border-color:rgba(0,0,0,.15)}
+.niche-question{
+  margin:10px 0;padding:10px 12px;border-radius:12px;
+  background:rgba(15,82,186,.08);border:1px solid rgba(15,82,186,.18);
+  display:grid;gap:8px;
+}
+.niche-actions{display:flex;gap:7px;flex-wrap:wrap}
+
+.view-card{
+  min-height:0;overflow:auto;border-radius:20px;padding:10px;
+  transition:all .22s ease;
+}
+.attn-list{display:grid;gap:8px}
+.attn-card{
+  border-radius:14px;border:1px solid rgba(0,0,0,.06);background:rgba(255,255,255,.9);padding:9px 10px;
+  display:grid;gap:6px;cursor:pointer;
+  transition:transform .14s ease, box-shadow .18s ease, border-color .18s ease;
+}
+.attn-card:hover{transform:translateY(-1px);box-shadow:0 8px 18px rgba(26,26,26,.08)}
+.attn-card.selected{border-color:rgba(15,82,186,.28)}
+.attn-head{display:flex;justify-content:space-between;gap:8px;align-items:flex-start}
+.attn-title{font-size:14px;line-height:1.15;font-weight:900;margin:0}
+.attn-meta{display:flex;flex-wrap:wrap;gap:6px;align-items:center;font-size:11px;color:var(--muted)}
+.gem-dot{width:9px;height:9px;border-radius:999px;display:inline-block}
+.score-pill{
+  border-radius:999px;padding:6px 9px;background:rgba(0,0,0,.06);color:var(--text);
+  font-size:11px;font-weight:900;white-space:nowrap
+}
+.actions-row{display:flex;gap:6px;flex-wrap:wrap}
+.actions-row.links{margin-top:2px}
+.act-btn,.link-btn,.profile-filter-chip{
+  border:1px solid rgba(0,0,0,.08);background:rgba(255,255,255,.95);border-radius:999px;padding:6px 10px;
+  cursor:pointer;font-size:11px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;
+  transition:all .18s ease;
+}
+.act-btn.active.like{background:rgba(224,17,95,.1);color:var(--ruby);border-color:rgba(224,17,95,.18)}
+.act-btn.active.save{background:rgba(15,82,186,.1);color:var(--sapphire);border-color:rgba(15,82,186,.18)}
+.act-btn.active.visit{background:rgba(0,181,113,.13);color:var(--emerald);border-color:rgba(0,181,113,.18)}
+
+.detail-grid{display:grid;gap:10px;padding:0 10px 10px}
+#detailView{padding:0}
+.detail-sticky{
+  position:sticky;top:0;z-index:3;
+  margin:0 -10px;
+  background:linear-gradient(180deg, rgba(249,248,244,.98) 75%, rgba(249,248,244,0));
+  padding:10px 10px 8px;
+}
+.detail-topline{display:flex;gap:8px;align-items:center;justify-content:space-between}
+.detail-img{width:100%;height:180px;object-fit:cover;border-radius:14px;background:rgba(0,0,0,.05)}
+.detail-title{font-size:24px;line-height:1.05;letter-spacing:-.02em;font-weight:900;margin:0}
+.serif-text{font-family:var(--font-serif);font-size:17px;line-height:1.35;color:#2F2A24;margin:0}
+.section-title{font-size:14px;font-weight:900}
+.small-note{font-size:12px;color:var(--muted);line-height:1.45}
+.small-note.info{padding:8px 10px;border-radius:10px;background:rgba(15,82,186,.07);border:1px solid rgba(15,82,186,.14)}
+.dim-grid{display:grid;gap:8px}
+.dim-row{display:flex;justify-content:space-between;gap:8px;margin-bottom:4px;font-size:12px;font-weight:700}
+.dim-track{height:7px;background:rgba(0,0,0,.06);border-radius:999px;overflow:hidden}
+.dim-fill{height:100%}
+
+.profile-stats,.profile-filter-row{display:flex;gap:6px;flex-wrap:wrap}
+.profile-chip{
+  border-radius:999px;padding:5px 9px;background:rgba(0,0,0,.05);color:var(--muted);font-size:11px;font-weight:800;
+  border:1px solid rgba(0,0,0,.06)
+}
+.profile-filter-chip.active{background:var(--onyx);color:#fff;border-color:var(--onyx)}
+
+.community-btn{
+  color:#fff;border:none;border-radius:11px;padding:10px 14px;font-weight:800;cursor:pointer;
+  transition:all .25s ease;
+  background:linear-gradient(135deg,#E0115F 0%,#0F52BA 50%,#00B571 100%);
+}
+.add-gem-fixed{position:sticky;top:0;z-index:4;box-shadow:0 8px 16px rgba(26,26,26,.16)}
+.community-btn.disabled{background:#BABABA!important;cursor:not-allowed}
+.community-card{
+  border:1px dashed rgba(0,0,0,.14);border-radius:14px;padding:10px;background:#fff;display:grid;gap:8px
+}
+
+.field{display:grid;gap:5px}
+.field input,.field textarea,.field select{
+  border:1px solid rgba(0,0,0,.08);border-radius:10px;padding:9px 11px;background:#fff;
+  transition:border-color .18s ease, box-shadow .18s ease;
+}
+.field textarea{min-height:84px;resize:vertical}
+.field input:focus,.field textarea:focus,.field select:focus{border-color:rgba(15,82,186,.35);box-shadow:0 0 0 3px rgba(15,82,186,.08);outline:none}
+
+.prefs-panel{
+  position:fixed;top:14px;right:14px;bottom:14px;width:340px;z-index:45;border-radius:20px;padding:12px;
+  display:grid;grid-template-rows:auto 1fr;gap:8px;
+  transform:translateX(calc(100% + 20px));transition:transform .24s ease;
+}
+body.prefs-open .prefs-panel{transform:translateX(0)}
+.prefs-head{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.prefs-title{font-size:15px;font-weight:900}
+.prefs-scroll{min-height:0;overflow:auto;display:grid;gap:8px;align-content:start}
+.setup-block{
+  background:rgba(255,255,255,.78);border:1px solid rgba(0,0,0,.05);border-radius:15px;padding:9px;display:grid;gap:7px;align-content:start
+}
+[data-action='open-profile'].active{background:var(--onyx)!important;color:#fff!important;border-color:var(--onyx)!important}
+#advancedPanel{max-height:560px;opacity:1;transform:translateY(0)}
+#toggleAdvancedBtn{display:none}
+.preset-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:7px}
+.preset-btn{
+  border:none;cursor:pointer;text-align:center;background:#fff;border:1px solid rgba(0,0,0,.06);
+  border-radius:10px;padding:8px 8px;transition:all .18s ease;font-weight:700;font-size:12px
+}
+.preset-btn.active{background:var(--onyx);color:#fff;border-color:var(--onyx)}
+
+.slider-stack{display:grid;gap:9px}
+.slider-row{display:grid;gap:5px}
+.slider-label{display:flex;justify-content:space-between;gap:8px;font-size:11px;color:var(--muted);font-weight:700}
+.slider-value{min-width:28px;text-align:right;color:#4A4740}
+.slider-track-wrap{position:relative;padding-top:2px}
+.slider-marks{display:flex;justify-content:space-between;font-size:10px;color:#918A80;padding-top:3px}
+input[type=range]{
+  width:100%;appearance:none;height:5px;border-radius:999px;
+  background:linear-gradient(90deg,#B9B5AE 0%,#B9B5AE var(--fill-pct,50%),#D9D6CF var(--fill-pct,50%),#D9D6CF 100%);
+}
+input[type=range]::-webkit-slider-thumb{
+  appearance:none;width:15px;height:15px;border-radius:999px;border:2px solid #fff;background:#68635B;box-shadow:0 2px 8px rgba(0,0,0,.2);cursor:pointer;
+  transition:transform .2s ease;
+}
+input[type=range]::-webkit-slider-thumb:hover{transform:scale(1.06)}
+
+.chips{display:flex;flex-wrap:wrap;gap:7px}
+.chip{
+  display:inline-flex;align-items:center;justify-content:center;
+  border-radius:999px;padding:7px 11px;border:1px solid rgba(0,0,0,.06);
+  font-size:11px;font-weight:700;cursor:pointer;background:#fff;color:var(--muted);
+  transition:all .18s ease;
+}
+.chip.dimmed{filter:grayscale(.85);opacity:.45}
+.chip.active{color:#fff;border-color:transparent}
+.chip.ruby.active{background:var(--ruby)}
+.chip.emerald.active{background:var(--emerald)}
+.chip.amber.active{background:var(--amber);color:#1A1A1A}
+.chip.rose.active{background:var(--rose)}
+.chip.sapphire.active{background:var(--sapphire)}
+.chip.amethyst.active{background:var(--amethyst)}
+.chip.aquamarine.active{background:var(--aquamarine)}
+.chip.community.active{background:linear-gradient(135deg,#E0115F 0%,#0F52BA 50%,#00B571 100%)!important;color:#fff!important;border-color:transparent!important}
+
+.toggle-row{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.compact-btn{
+  color:#fff;border:none;border-radius:11px;padding:10px 14px;font-weight:800;cursor:pointer;
+  transition:transform .18s ease, box-shadow .2s ease;
+  background:linear-gradient(135deg,#E0115F 0%,#0F52BA 50%,#00B571 100%);
+}
+.compact-btn:hover{transform:translateY(-1px);box-shadow:0 10px 18px rgba(26,26,26,.14)}
+
+.onboarding{
+  position:fixed;inset:0;z-index:50;display:grid;place-items:center;padding:20px;
+  background:rgba(249,248,244,.44);backdrop-filter:blur(9px)
+}
+.onboarding-card{width:min(1120px,100%);border-radius:24px;padding:14px;display:grid;gap:10px}
+.onboarding-grid{display:grid;grid-template-columns:.88fr 1.12fr;gap:12px}
+.hero-block,.intro-block{
+  background:rgba(255,255,255,.8);border:1px solid rgba(0,0,0,.05);border-radius:17px;padding:14px;display:grid;gap:10px;
+  align-content:center;
+  transition:transform .28s ease, align-content .28s ease;
+}
+.hero-block.move-up{transform:translateY(-8px);align-content:start}
+.hero-title{font-size:34px;line-height:1;letter-spacing:-.04em;font-weight:900;max-width:10ch}
+.hero-subtitle{font-size:13px;line-height:1.5;color:var(--muted);max-width:36ch}
+.onboarding-footer{display:flex;align-items:center;justify-content:flex-end;gap:8px;flex-wrap:wrap}
+
+.advanced-panel{
+  overflow:hidden;max-height:0;opacity:0;transform:translateY(-4px);
+  transition:max-height .32s ease, opacity .25s ease, transform .25s ease;
+}
+.advanced-panel.open{max-height:560px;opacity:1;transform:translateY(0)}
+.chevron-btn{width:28px;height:28px;border-radius:9px}
+.chevron-btn svg{transition:transform .22s ease}
+.chevron-btn.open svg{transform:rotate(180deg)}
+
+/* Fixed outer box for ALL attraction markers */
+.marker-shell{
+  width: 27px;
+  height: 27px;
+  display: grid;
+  place-items: center;
+  pointer-events: auto;
+}
+
+.marker-core{
+  width: 9px;
+  height: 9px;
+  border-radius: 999px;
+  position: relative;
+  box-sizing: border-box;
+  box-shadow: 0 0 0 2px #fff, 0 0 6px rgba(0,0,0,.18);
+}
+
+.marker-core.photo-marker{
+  width: 27px;
+  height: 27px;
+  border-radius: 999px;
+  box-shadow: 0 0 0 2px #fff, 0 0 10px rgba(0,0,0,.18);
+}
+
+.marker-core.top-gem::after{
+  content: "";
+  position: absolute;
+  inset: -3px;
+  border-radius: 999px;
+  border: 1.8px solid currentColor;
+  opacity: .82;
+  pointer-events: none;
+}
+
+.maplibregl-ctrl-group{border-radius:10px!important;overflow:hidden;border:none!important;box-shadow:0 10px 20px rgba(26,26,26,.12)!important}
+
+.fade-in{animation:fadeIn .22s ease}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+@keyframes fadeUp{from{opacity:0;transform:translateY(3px)}to{opacity:1;transform:translateY(0)}}
+@keyframes shimmer { 0%{background-position:-200% 0} 100%{background-position:200% 0} }
+
+/* Route feature */
+.route-btn{
+  color:#fff;border:none;border-radius:11px;padding:10px 14px;font-weight:800;cursor:pointer;
+  background:linear-gradient(135deg,#0F52BA 0%,#00B571 100%);
+  transition:all .25s ease;margin-top:6px;width:100%;
+}
+.route-btn:hover{transform:translateY(-1px);box-shadow:0 10px 18px rgba(26,26,26,.14)}
+.route-btn:disabled{background:#BABABA;cursor:not-allowed;transform:none;box-shadow:none}
+.route-panel{display:grid;gap:10px;padding:0 2px}
+.route-stop{
+  display:grid;grid-template-columns:28px 1fr;gap:8px;align-items:start;
+  border-radius:12px;border:1px solid rgba(0,0,0,.06);background:#fff;padding:9px 10px;
+}
+.route-stop-num{
+  width:24px;height:24px;border-radius:999px;background:linear-gradient(135deg,#0F52BA,#00B571);
+  color:#fff;font-size:11px;font-weight:900;display:grid;place-items:center;flex-shrink:0;
+}
+.route-stop-leg{font-size:11px;color:var(--muted);margin-top:3px}
+.route-total{
+  font-size:12px;font-weight:800;padding:8px 10px;border-radius:10px;
+  background:rgba(15,82,186,.07);border:1px solid rgba(15,82,186,.14);color:var(--sapphire);
+}
+.route-clear-btn{
+  border:1px solid rgba(0,0,0,.08);background:#fff;border-radius:999px;padding:7px 12px;
+  cursor:pointer;font-size:11px;font-weight:700;color:var(--muted);
+}
+.route-clear-btn:hover{color:var(--text);border-color:rgba(0,0,0,.18)}
+/* Route mode */
+.route-banner{
+  position:absolute;top:10px;left:50%;transform:translateX(-50%);z-index:9;
+  background:rgba(255,255,255,.96);border:1px solid rgba(0,0,0,.08);border-radius:999px;
+  padding:8px 14px;font-size:12px;font-weight:800;color:var(--text);
+  box-shadow:0 8px 20px rgba(26,26,26,.12);display:flex;gap:10px;align-items:center;
+  white-space:nowrap;
+}
+.route-banner button{
+  border:1px solid rgba(0,0,0,.1);background:#fff;border-radius:999px;
+  padding:5px 10px;font-size:11px;font-weight:800;cursor:pointer;color:var(--muted);
+  transition:all .18s ease;
+}
+.route-banner button:hover{color:var(--text);border-color:rgba(0,0,0,.2)}
+
+/* Community gem photo preview */
+.photo-preview{
+  width:100%;height:110px;object-fit:cover;border-radius:10px;
+  border:1px solid rgba(0,0,0,.07);
+}
+.photo-upload-area{
+  border:1.5px dashed rgba(0,0,0,.14);border-radius:10px;padding:10px;
+  text-align:center;cursor:pointer;font-size:11px;color:var(--muted);
+  background:#fafaf8;transition:border-color .18s ease;
+}
+.photo-upload-area:hover{border-color:rgba(15,82,186,.3)}
+
+/* Orbit ring for community markers with no photo */
+.marker-core.community-orbit::after{
+  content:"";position:absolute;inset:-3px;border-radius:999px;
+  border:1.8px dashed rgba(255,255,255,.85);opacity:.9;pointer-events:none;
+}
+  
+@media (max-width:1200px){.main-grid{grid-template-columns:1fr}#map{min-height:54vh}}
+@media (max-width:980px){
+  .topbar{grid-template-columns:1fr auto}
+  .logo-row{grid-column:1 / -1}
+  .onboarding-grid{grid-template-columns:1fr}
+  .preset-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
+  body.prefs-open .app{padding-right:14px}
+}
+
+/* ── Mobile layout (≤ 767px only) ─────────────────────────────────────── */
+@media (max-width: 767px) {
+  html, body { overflow: auto; }
+
+  .app {
+    grid-template-rows: auto 1fr;
+    padding: 8px;
+    gap: 8px;
+    height: auto;
+    min-height: 100dvh;
+  }
+
+  .main-grid {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto auto;
+    gap: 8px;
+  }
+
+  /* Map: compact but usable */
+  .map-wrap { min-height: 38vh; max-height: 42vh; border-radius: 16px; }
+  #map { min-height: 38vh; }
+
+  /* Side panel fills remaining space */
+  .side-panel { display: flex; flex-direction: column; gap: 8px; }
+  .view-card { flex: 1; min-height: 38vh; max-height: 56vh; overflow-y: auto; border-radius: 16px; }
+
+  /* Expand button appears on mobile — tapping toggles map/list fullscreen */
+  .mobile-expand-btn {
+    display: flex !important;
+    position: sticky; top: 4px; z-index: 8;
+    margin: 0 auto 4px;
+    border: 1px solid rgba(0,0,0,.1); background: #fff;
+    border-radius: 999px; padding: 5px 14px;
+    font-size: 11px; font-weight: 800; color: var(--muted); cursor: pointer;
+    gap: 5px; align-items: center;
+  }
+  body.map-expanded .map-wrap { max-height: 80vh; min-height: 80vh; }
+  body.map-expanded .view-card { max-height: 0; overflow: hidden; }
+  body.list-expanded .map-wrap { max-height: 0; min-height: 0; overflow: hidden; }
+  body.list-expanded .view-card { max-height: 80vh; flex: 1; }
+
+  /* Topbar compact */
+  .topbar { padding: 8px 10px; }
+  .logo-title { font-size: 16px; }
+  .logo-mark { width: 30px; height: 30px; }
+
+  /* Prefs panel full-screen on mobile */
+  .prefs-panel { top: 0; right: 0; bottom: 0; left: 0; width: 100%; border-radius: 0; }
+  body.prefs-open .app { padding-right: 8px; }
+
+  /* Onboarding: scrollable on mobile */
+  .onboarding { align-items: flex-start; overflow-y: auto; padding: 12px 8px; }
+  .onboarding-card { width: 100%; }
+  .onboarding-grid { grid-template-columns: 1fr; }
+  .hero-block { display: none; } /* hide decorative hero block on small screens */
+  .advanced-panel.open { max-height: 1200px; } /* allow full scroll */
+  .onboarding-footer { position: sticky; bottom: 0; background: var(--panel); padding: 10px 0 4px; }
+}
+
+/* Hide expand button on desktop */
+.mobile-expand-btn { display: none; }
+
+</style>
+</head>
+<body>
+
+<!-- ===================================================================== -->
+<!-- BLOCK 4: MAIN APP LAYOUT (REWRITE) -->
+<!-- ===================================================================== -->
+<div class='app'>
+  <header class='topbar'>
+    <div class='logo-row'>
+      <div class='logo-mark' aria-hidden='true'>
+        <svg width='24' height='24' viewBox='0 0 100 100' fill='none'>
+          <path d='M50 6 L94 50 L50 94 L6 50 Z' stroke='#1A1A1A' stroke-width='7' stroke-linejoin='round'></path>
+          <path d='M50 20 L79 50 L50 80 L21 50 Z' stroke='#8D877D' stroke-width='4' stroke-linejoin='round' opacity='0.72'></path>
+        </svg>
+      </div>
+      <div class='logo-title'>Hidden Gem</div>
+    </div>
+    <div></div>
+    <div class='top-actions'>
+      <button class='icon-only' id='menuBtn' aria-label='Open preferences'>
+        <svg width='16' height='16' fill='none' stroke='currentColor' stroke-width='2.2' viewBox='0 0 24 24'>
+          <path d='M4 6h16M4 12h16M4 18h16' stroke-linecap='round'/>
+        </svg>
+      </button>
+    </div>
+  </header>
+
+  <section class='main-grid'>
+    <div class='map-wrap'>
+      <div id='map'></div>
+
+      <button class='icon-only legend-toggle' id='legendToggleBtn' aria-label='Toggle legend'>
+        <svg width='15' height='15' fill='none' stroke='currentColor' stroke-width='2.2' viewBox='0 0 24 24'>
+          <circle cx='12' cy='12' r='8'></circle>
+          <path d='M12 10.5v5M12 8.2h.01' stroke-linecap='round'></path>
+        </svg>
+      </button>
+
+      <div class='map-legend hidden' id='mapLegend'>
+        <div class='section-title'>Legend</div>
+        <div class='legend-row'><span class='legend-dot' style='background:var(--ruby)'></span><span>Culture</span></div>
+        <div class='legend-row'><span class='legend-dot' style='background:var(--emerald)'></span><span>Nature</span></div>
+        <div class='legend-row'><span class='legend-dot' style='background:var(--amber)'></span><span>Shopping</span></div>
+        <div class='legend-row'><span class='legend-dot' style='background:var(--rose)'></span><span>Spirituality</span></div>
+        <div class='legend-row'><span class='legend-dot' style='background:var(--sapphire)'></span><span>Architecture</span></div>
+        <div class='legend-row'><span class='legend-dot' style='background:var(--amethyst)'></span><span>Entertainment</span></div>
+        <div class='legend-row'><span class='legend-dot' style='background:var(--aquamarine)'></span><span>Other</span></div>
+      </div>
+    </div>
+
+    <div class='side-panel'>
+      <button class="mobile-expand-btn" id="mobileExpandBtn">
+        <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg>
+        <span id="mobileExpandLabel">Expand list</span>
+      </button>
+      <div class='tab-bar'>
+        <div class='section-title' id='tabListBtn'>Top matches</div>
+        <button class='link-btn hidden' data-action='back-to-neighbourhoods' id='backToNeighborhoodsBtn'>← Back to neighbourhoods</button>
+      </div>
+      <div class='chips view-mode-row'>
+        <button class='chip active' data-action='set-view-mode' data-mode='attractions'>Attractions</button>
+        <button class='chip' data-action='set-view-mode' data-mode='neighbourhoods'>Neighbourhoods</button>
+      </div>
+      <button class='community-btn add-gem-fixed' id='addGemFixedBtn' data-action='start-community-gem'>Add a hidden gem!</button>
+      <div class='view-card' id='listView'><div class='attn-list' id='listContainer'></div></div>
+      <div class='view-card hidden' id='detailView'></div>
+      <div class='view-card hidden' id='profileView'><div id='profileContainer' class='detail-grid'></div>
+      </div>
+      <div class='view-card hidden' id='routeView'><div id='routeContainer' class='detail-grid'></div>
+      </div>
+    </div>
+  </section>
+</div>
+
+<!-- ===================================================================== -->
+<!-- BLOCK 5: INTRO PAGE / ONBOARDING & PREFS DRAWER (REWRITE) -->
+<!-- ===================================================================== -->
+<div class='prefs-panel' id='prefsPanel'>
+  <div class='prefs-head'>
+    <button class='link-btn' id='backPrefsBtn' aria-label='Back from preferences'>← Back</button>
+    <div class='prefs-title'>Preferences</div>
+    <div style='width:38px'></div>
+  </div>
+  <div class='prefs-scroll'>
+    <section class='setup-block'>
+      <div class='section-title'>My Profile</div>
+      <div class='chips'>
+        <button class='chip active' data-action='open-profile' data-profile-tab='saved'>Saved gems</button>
+        <button class='chip' data-action='open-profile' data-profile-tab='settings'>Settings</button>
+      </div>
+    </section>
+
+    <section class='setup-block' id='drawerSavedWrap'></section>
+
+    <div id='drawerSettingsWrap' class='hidden'>
+      <section class='setup-block'>
+        <div class='section-title'>Profiles</div>
+        <div class='preset-grid' id='drawerPresetGrid'></div>
+      </section>
+      <section class='setup-block'>
+        <div class='toggle-row'>
+          <div class='section-title'>Advanced</div>
+          <button class='icon-only chevron-btn' id='toggleAdvancedBtn' aria-label='Toggle advanced'>
+            <svg width='16' height='16' fill='none' stroke='currentColor' stroke-width='2.2' viewBox='0 0 24 24'>
+              <path d='M6 9l6 6 6-6' stroke-linecap='round' stroke-linejoin='round'/>
+            </svg>
+          </button>
+        </div>
+        <div id='advancedPanel' class='advanced-panel'>
+          <div class='slider-stack' id='drawerSliders'></div>
+        </div>
+      </section>
+      <section class='setup-block'>
+        <div class='section-title'>Select categories</div>
+        <div class='chips' id='drawerGemChips'></div>
+      </section>
+    </div>
+  </div>
+</div>
+
+<div class='onboarding' id='onboarding'>
+  <div class='onboarding-card'>
+    <div class='onboarding-grid'>
+      <div class='hero-block' id='onboardingHeroBlock'>
+        <div class='hero-title'>Hidden Gems</div>
+        <div class='hero-subtitle'>Find places matched to your mood and style. You can fine-tune this later in Preferences.</div>
+      </div>
+      <div class='intro-block'>
+        <div class='section-title'>Profiles</div>
+        <div class='preset-grid' id='onboardingPresetGrid'></div>
+        <div class='toggle-row'>
+          <div class='section-title'>Advanced</div>
+          <button class='icon-only chevron-btn' id='toggleOnboardingAdvancedBtn' aria-label='Toggle advanced'>
+            <svg width='16' height='16' fill='none' stroke='currentColor' stroke-width='2.2' viewBox='0 0 24 24'>
+              <path d='M6 9l6 6 6-6' stroke-linecap='round' stroke-linejoin='round'/>
+            </svg>
+          </button>
+        </div>
+        <div id='onboardingAdvancedPanel' class='advanced-panel'>
+          <div class='slider-stack' id='onboardingSliders'></div>
+          <div style='margin-top:14px'>
+            <div class='section-title' style='margin-bottom:8px'>Select categories</div>
+            <div class='chips' id='onboardingGemChips'></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class='onboarding-footer'>
+      <button class='compact-btn' id='startAppBtn'>To Discovery</button>
+    </div>
+  </div>
+</div>
+
+<script>
+
+// =====================================================================
+// BLOCK 6: APP CONFIG (REWRITE)
+// =====================================================================
+const ATTRACTIONS_CDN_URL = "https://cdn.jsdelivr.net/gh/echo-golf-oscar-romeo/hiddengem-space@main/attractions_v2.json";
+
+const DIMENSIONS = {"emotional_experience": "Emotional Experience", "scenic_beauty": "Scenic Beauty", "local_authenticity": "Local Authenticity", "novelty_and_surprise": "Novelty & Surprise", "photogenic_quality": "Photogenic Quality", "value_for_money": "Value for Money", "cultural_depth": "Cultural Depth"};
+const GEM_FAMILIES = [
+  { key: "ruby",       label: "Culture",        color: "#E0115F" },
+  { key: "emerald",    label: "Nature",         color: "#00B571" },
+  { key: "amber",      label: "Shopping",       color: "#FFBF00" },
+  { key: "rose",       label: "Spirituality",   color: "#E27396" },
+  { key: "sapphire",   label: "Architecture",   color: "#0F52BA" },
+  { key: "amethyst",   label: "Entertainment",  color: "#9966CC" },
+  { key: "aquamarine", label: "Other",          color: "#00BFBF" },
+  {"key": "community", "label": "Community Gems", "color": "linear-gradient(135deg,#E0115F 0%,#0F52BA 50%,#00B571 100%)"}];
+
+const MAPBOX_TILE_URL = "https://api.mapbox.com/styles/v1/kuttin29/cmoa6a7cz003201r3eykg17k4/tiles/{z}/{x}/{y}?access_token=pk.eyJ1Ijoia3V0dGluMjkiLCJhIjoiY21vbWhlbWJ6MHVwbjJ4c2FpNTU5ZzdkOSJ9.k7RvlUlZzj6RhX6hgf26IQ";
+const COMMUNITY_GRADIENTS = Object.freeze([
+  "linear-gradient(135deg,#E0115F 0%,#0F52BA 55%,#00B571 100%)",
+  "linear-gradient(135deg,#00B571 0%,#0F52BA 55%,#E0115F 100%)",
+  "linear-gradient(135deg,#0F52BA 0%,#E0115F 50%,#FFBF00 100%)",
+  "linear-gradient(135deg,#9966CC 0%,#0F52BA 55%,#00BFBF 100%)",
+  "linear-gradient(135deg,#E27396 0%,#9966CC 50%,#0F52BA 100%)"
+]);
+const SCORE_CONFIG = Object.freeze({
+  valuePower: 2.25,
+  weightPower: 1.2,
+  popularityPenaltyPower: 1.6,
+  hiddenGemBonus: 7,
+  topOrbitalCount: 7
+});
+const VIEW_LIMITS = Object.freeze({ list: 50, map: 85 });
+
+// Track IDs created this session so edit/delete + "My gems" filter works correctly
+const SESSION_GEM_IDS = new Set();
+
+// Mapbox token (already used for map tiles – reuse for Directions API)
+const MAPBOX_TOKEN = "pk.eyJ1Ijoia3V0dGluMjkiLCJhIjoiY21vbWhlbWJ6MHVwbjJ4c2FpNTU5ZzdkOSJ9.k7RvlUlZzj6RhX6hgf26IQ";
+
+const presets = [
+  { name:"Balanced", weights:{ emotional_experience:5, scenic_beauty:5, local_authenticity:5, novelty_and_surprise:5, photogenic_quality:5, value_for_money:5, cultural_depth:5 }, families:["ruby","emerald","amber","rose","sapphire","amethyst","aquamarine"] },
+  { name:"Broke Student", weights:{ emotional_experience:5, scenic_beauty:4, local_authenticity:5, novelty_and_surprise:5, photogenic_quality:4, value_for_money:10, cultural_depth:3 }, families:["ruby","emerald","amber","rose","sapphire","amethyst","aquamarine"] },
+  { name:"Culture Lover", weights:{ emotional_experience:7, scenic_beauty:4, local_authenticity:9, novelty_and_surprise:6, photogenic_quality:5, value_for_money:4, cultural_depth:10 }, families: ["ruby","rose","sapphire"] },
+  { name:"Nature Explorer", weights:{ emotional_experience:7, scenic_beauty:10, local_authenticity:6, novelty_and_surprise:8, photogenic_quality:8, value_for_money:5, cultural_depth:3 }, families:["emerald"] },
+  { name:"Urban Wanderer", weights:{ emotional_experience:6, scenic_beauty:5, local_authenticity:7, novelty_and_surprise:8, photogenic_quality:7, value_for_money:5, cultural_depth:6 }, families:["ruby","amber","aquamarine","amethyst"] },
+  { name:"Photoholic", weights:{ emotional_experience:6, scenic_beauty:9, local_authenticity:7, novelty_and_surprise:8, photogenic_quality:10, value_for_money:4, cultural_depth:5 }, families: ["ruby","emerald","sapphire","rose","aquamarine"] },
+  { name:"Community Gems", weights:{ emotional_experience:5, scenic_beauty:5, local_authenticity:5, novelty_and_surprise:5, photogenic_quality:5, value_for_money:5, cultural_depth:5 }, families:["community"] },
+  { name:"Custom", weights:null, families:["ruby","emerald","amber","rose","sapphire","amethyst","aquamarine"] }
+];
+
+// =====================================================================
+// BLOCK 7: APP STATE MODEL (REWRITE)
+// =====================================================================
+const appState = {
+  preferences: {
+    weights: {
+      emotional_experience: 5, scenic_beauty: 5, local_authenticity: 5, novelty_and_surprise: 5,
+      photogenic_quality: 5, value_for_money: 5, cultural_depth: 5
+    },
+    selectedPreset: "Balanced",
+    activeGemFamilies: new Set(["ruby","emerald","amber","rose","sapphire","amethyst","aquamarine"]),
+    hiddenNicheTarget: 4
+  },
+  userActions: { liked: new Set(), saved: new Set(), visited: new Set() },
+  ui: {
+    activeTab: "list", selectedAttractionId: null, prefsOpen: false, onboardingOpen: true,
+    onboardingAdvancedOpen: false, drawerAdvancedOpen: true, legendOpen: false, addingCommunityGem: false,
+    editingCommunityGemId: null,
+    communityDraftGradient: null, selectedProfileGroup: "saved", viewMode: "attractions",
+    selectedNeighborhoodId: null, profileSettingsMode: false, previousViewState: null,
+    selectedNeighborhoodName: "",
+    routeMode: false, routeGemIds: [], routeOrdered: []
+  },
+  data: { baseAttractions: [], communityGems: [], ranked: [], topGemIds: new Set(), photoTopIds: new Set(), orbitTopIds: new Set() },
+  map: { instance: null, markerIndex: new Map(), pendingCommunityLngLat: null, ready: false, failed: false }
+};
+
+// NEW — paste your actual Firebase config here:
+const FIREBASE_CONFIG = {
+  apiKey: "AIzaSyAfA6HIwfMUHqTftInhZVKRCD42iwAKllI",
+  authDomain: "hiddengem-space.firebaseapp.com",
+  projectId: "hiddengem-space",
+  storageBucket: "hiddengem-space.firebasestorage.app",
+  messagingSenderId: "593723398225",
+  appId: "1:593723398225:web:34847f347faadd5742c070",
+  measurementId: "G-TZN4P4X9F4"
+};
+
+let db = null, firebaseAuth = null, currentUid = null;
+
+function initFirebase(){
+  try {
+    firebase.initializeApp(FIREBASE_CONFIG);
+    db = firebase.firestore();
+    firebaseAuth = firebase.auth();
+
+    firebaseAuth.signInAnonymously()
+      .then(cred => {
+        currentUid = cred.user.uid;
+        // Live-sync community gems from Firestore
+        db.collection("communityGems").onSnapshot(snapshot => {
+          appState.data.communityGems = snapshot.docs.map(doc => ({
+            ...doc.data(),
+            id: doc.id,
+            isCommunity: true
+          }));
+          updateApp();
+        });
+      })
+      .catch(err => console.warn("Firebase auth failed, running local-only:", err));
+  } catch(e) {
+    console.warn("Firebase init failed, running local-only:", e);
+  }
+}
+
+function pickCommunityGradient(){
+  return COMMUNITY_GRADIENTS[Math.floor(Math.random() * COMMUNITY_GRADIENTS.length)];
+}
+
+function updateState(mutator, rerender = true){ mutator(appState); if (rerender) updateApp(); }
+
+// =====================================================================
+// BLOCK 8: PURE SCORING + DERIVED DATA (REWRITE)
+// =====================================================================
+function escapeHtml(s){
+  return String(s || "").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+}
+function getColorForGem(gem){
+  const item = GEM_FAMILIES.find(g => g.key === gem);
+  return item ? item.color : "#8D877D";
+}
+function mergedAttractions(){ return [...appState.data.baseAttractions, ...appState.data.communityGems]; }
+function normalized(v){ return Math.max(0, Math.min(1, Number(v || 0) / 10)); }
+function nonlinearValue(v){ return Math.pow(normalized(v), SCORE_CONFIG.valuePower); }
+
+function calcScore(attr){
+  const p = appState.preferences;
+  const isCommunityVisible = p.activeGemFamilies.has("community");
+  if (attr.isCommunity && !isCommunityVisible) return -1;
+  if (!attr.isCommunity && !p.activeGemFamilies.has(attr.gem)) return -1;
+
+  let wSum = 0;
+  let vSum = 0;
+  for (const [k] of Object.entries(DIMENSIONS)) {
+    const w = Math.pow(Number(p.weights[k] || 0), SCORE_CONFIG.weightPower);
+    const raw = attr.dims && attr.dims[k] != null ? attr.dims[k] : (attr.avg_score != null ? attr.avg_score : 5);
+    vSum += nonlinearValue(raw) * w;
+    wSum += w;
+  }
+  const quality = wSum ? (vSum / wSum) : 0.5;
+  const baseScore = quality * 100;
+
+  const popularity = attr.popularity != null ? Number(attr.popularity) : 5;
+  const gap = Math.abs(popularity - p.hiddenNicheTarget) / 9;
+  const popularityPenalty = Math.pow(gap, SCORE_CONFIG.popularityPenaltyPower) * 26;
+  let score = baseScore - popularityPenalty + (attr.hidden_gem ? SCORE_CONFIG.hiddenGemBonus : 0);
+
+  // Important: interactions DO NOT change ranking position.
+  // (liked/saved/visited are ignored in scoring by design)
+  score += (String(attr.id).charCodeAt(0) % 5) * 0.05; // tiny deterministic spread
+  return Math.max(0, Math.min(100, score));
+}
+
+function pointInRing(point, ring){
+  const [x, y] = point;
+  let inside = false;
+  for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+    const xi = ring[i][0], yi = ring[i][1];
+    const xj = ring[j][0], yj = ring[j][1];
+    const intersect = ((yi > y) !== (yj > y)) &&
+      (x < (xj - xi) * (y - yi) / ((yj - yi) || 1e-12) + xi);
+    if (intersect) inside = !inside;
+  }
+  return inside;
+}
+
+function pointInGeometry(point, geom){
+  if (!geom || !geom.type || !geom.coordinates) return false;
+  if (geom.type === "Polygon") {
+    const [outer, ...holes] = geom.coordinates;
+    if (!outer || !pointInRing(point, outer)) return false;
+    return !holes.some(h => pointInRing(point, h));
+  }
+  if (geom.type === "MultiPolygon") {
+    return geom.coordinates.some(poly => {
+      const [outer, ...holes] = poly;
+      if (!outer || !pointInRing(point, outer)) return false;
+      return !holes.some(h => pointInRing(point, h));
+    });
+  }
+  return false;
+}
+
+function deriveRankedAttractions(){
+  const selectedNeighborhood = appState.data.baseAttractions.find(x => x.id === appState.ui.selectedNeighborhoodId);
+  const selectedNeighborhoodGeom = selectedNeighborhood ? parsePolygonGeometry(selectedNeighborhood.polygon_geometry) : null;
+
+  if (selectedNeighborhood) appState.ui.selectedNeighborhoodName = selectedNeighborhood.name || "";
+  if (!selectedNeighborhood && appState.ui.viewMode === "attractions") appState.ui.selectedNeighborhoodName = "";
+
+  const ranked = mergedAttractions()
+    .filter(a => !appState.userActions.visited.has(a.id))
+    .filter(a => appState.ui.viewMode === "neighbourhoods" ? !!a.isPolygon : !a.isPolygon)
+    .filter(a => {
+      if (!selectedNeighborhoodGeom || appState.ui.viewMode !== "attractions") return true;
+      if (a.isPolygon || a.lng == null || a.lat == null) return false;
+      return pointInGeometry([Number(a.lng), Number(a.lat)], selectedNeighborhoodGeom);
+    })
+    .map(a => ({ ...a, matchScore: calcScore(a) }))
+    .filter(a => a.matchScore >= 0)
+    .sort((a,b) => b.matchScore - a.matchScore);
+
+  const topWithPhoto = ranked.filter(x => x.photo).slice(0, 7).map(x => x.id);
+  appState.data.photoTopIds = new Set(topWithPhoto);
+  appState.data.orbitTopIds = new Set(ranked.slice(7, 21).map(x => x.id));
+  appState.data.topGemIds = new Set(ranked.slice(0, SCORE_CONFIG.topOrbitalCount).map(x => x.id));
+  return ranked;
+}
+
+function getSelectedAttraction(){ return appState.data.ranked.find(a => a.id === appState.ui.selectedAttractionId) || null; }
+
+// BLOCK 9: MAP LOGIC + ROBUSTNESS (REWRITE)
+// =====================================================================
+
+function initMap() {
+  const mapWrap = document.getElementById("map");
+  if (!mapWrap || typeof maplibregl === "undefined") {
+    appState.map.failed = true;
+    return;
+  }
+  try {
+    const map = new maplibregl.Map({
+      container: "map",
+      style: "https://basemaps.cartocdn.com/gl/positron-gl-style/style.json",
+      center: [114.16, 22.32],
+      zoom: 10.5,
+      minZoom: 10,
+      maxZoom: 16,
+      maxBounds: [[113.8, 22.1], [114.4, 22.6]]
+    });
+    map.addControl(new maplibregl.NavigationControl(), "top-right");
+    map.on("load", () => {
+      appState.map.ready = true;
+      updateApp();
+    });
+    map.on("error", () => {
+      appState.map.failed = true;
+    });
+    map.on("click", (e) => {
+      if (!appState.ui.addingCommunityGem) return;
+      appState.map.pendingCommunityLngLat = [e.lngLat.lng, e.lngLat.lat];
+      updateApp();
+    });
+    appState.map.instance = map;
+  } catch (_e) {
+    appState.map.failed = true;
+    if (mapWrap) {
+      mapWrap.innerHTML =
+        "<div class='small-note'>Map failed to load.</div>";
+    }
+  }
+}
+
+
+function markerColor(a){
+  if (a.isCommunity || a.gem === "community") return (a.gemColor || appState.ui.communityDraftGradient || COMMUNITY_GRADIENTS[0]);
+  return getColorForGem(a.gem);
+}
+
+function parsePolygonGeometry(raw){
+  if (!raw) return null;
+  const txt = String(raw).trim();
+
+  // GeoJSON string support
+  try {
+    const g = JSON.parse(txt);
+    if (g && (g.type === "Polygon" || g.type === "MultiPolygon")) return g;
+  } catch(_e) {}
+
+  // Minimal WKT support: POLYGON / MULTIPOLYGON
+  const parseRing = (ringTxt) => ringTxt.split(",").map(p => {
+    const [x, y] = p.trim().split(/\s+/).map(Number);
+    return [x, y];
+  }).filter(pt => Number.isFinite(pt[0]) && Number.isFinite(pt[1]));
+
+  const up = txt.toUpperCase();
+  if (up.startsWith("POLYGON")) {
+    const inner = txt.replace(/^\s*POLYGON\s*\(\(/i, "").replace(/\)\)\s*$/, "");
+    const rings = inner.split(/\)\s*,\s*\(/).map(parseRing).filter(r => r.length >= 4);
+    if (rings.length) return { type: "Polygon", coordinates: rings };
+  }
+
+  if (up.startsWith("MULTIPOLYGON")) {
+    const inner = txt.replace(/^\s*MULTIPOLYGON\s*\(\(\(/i, "").replace(/\)\)\)\s*$/, "");
+    const polys = inner.split(/\)\)\s*,\s*\(\(/).map(polyTxt => {
+      const rings = polyTxt.split(/\)\s*,\s*\(/).map(parseRing).filter(r => r.length >= 4);
+      return rings;
+    }).filter(p => p.length);
+    if (polys.length) return { type: "MultiPolygon", coordinates: polys };
+  }
+
+  return null;
+}
+
+function polygonFeatureCollection(items){
+  return {
+    type: "FeatureCollection",
+    features: items
+      .filter(x => x.isPolygon)
+      .map(x => ({
+        type: "Feature",
+        geometry: parsePolygonGeometry(x.polygon_geometry),
+        properties: { id: x.id, name: x.name, color: markerColor(x) }
+      }))
+      .filter(f => !!f.geometry)
+  };
+}
+
+function geometryBounds(geom){
+  let minLng = Infinity, minLat = Infinity, maxLng = -Infinity, maxLat = -Infinity;
+  const push = (pt) => {
+    const lng = Number(pt[0]);
+    const lat = Number(pt[1]);
+    if (!Number.isFinite(lng) || !Number.isFinite(lat)) return;
+    minLng = Math.min(minLng, lng);
+    minLat = Math.min(minLat, lat);
+    maxLng = Math.max(maxLng, lng);
+    maxLat = Math.max(maxLat, lat);
+  };
+
+  if (geom?.type === "Polygon") {
+    geom.coordinates.forEach(ring => ring.forEach(push));
+  } else if (geom?.type === "MultiPolygon") {
+    geom.coordinates.forEach(poly => poly.forEach(ring => ring.forEach(push)));
+  }
+
+  if (!Number.isFinite(minLng)) return null;
+  return [[minLng, minLat], [maxLng, maxLat]];
+}
+
+function focusNeighborhoodOnMap(neighborhoodId){
+  const map = appState.map.instance;
+  if (!map || !neighborhoodId) return;
+  const n = appState.data.baseAttractions.find(x => x.id === neighborhoodId);
+  if (!n) return;
+  const geom = parsePolygonGeometry(n.polygon_geometry);
+  const bounds = geometryBounds(geom);
+  if (!bounds) return;
+  map.fitBounds(bounds, { padding: 42, maxZoom: 14, duration: 450 });
+}
+
+function openNeighborhood(neighborhoodId, neighborhoodName){
+  appState.ui.selectedNeighborhoodId = neighborhoodId;
+  appState.ui.selectedNeighborhoodName = neighborhoodName || "";
+  appState.ui.viewMode = "attractions";
+  appState.ui.selectedAttractionId = null;
+  setActiveTab("list");
+  updateApp();
+  focusNeighborhoodOnMap(neighborhoodId);
+}
+
+function renderPolygons(list){
+  const map = appState.map.instance;
+  if (!map || !map.isStyleLoaded()) return;
+  const sourceId = "neighborhoods";
+  const fillId = "neighborhood-fill";
+  const lineId = "neighborhood-line";
+  const fc = polygonFeatureCollection(list);
+
+  if (!map.getSource(sourceId)) {
+    map.addSource(sourceId, { type: "geojson", data: fc });
+    map.addLayer({ id: fillId, type: "fill", source: sourceId, paint: { "fill-color": ["get", "color"], "fill-opacity": 0.2 } });
+    map.addLayer({ id: lineId, type: "line", source: sourceId, paint: { "line-color": ["get", "color"], "line-opacity": 0.5, "line-width": 2 } });
+    map.on("click", fillId, (e) => {
+      const f = e.features && e.features[0];
+      if (!f) return;
+      openNeighborhood(f.properties.id, f.properties.name || "");
+    });
+  } else {
+    map.getSource(sourceId).setData(fc);
+  }
+
+  const visible = appState.ui.viewMode === "neighbourhoods" || !!appState.ui.selectedNeighborhoodId;
+  if (map.getLayer(fillId)) map.setLayoutProperty(fillId, "visibility", visible ? "visible" : "none");
+  if (map.getLayer(lineId)) map.setLayoutProperty(lineId, "visibility", visible ? "visible" : "none");
+}
+
+function renderMap(list) {
+  const map = appState.map.instance;
+  if (!map || appState.map.failed) return;
+
+  renderPolygons(list);
+
+  for (const [id, marker] of appState.map.markerIndex.entries()) {
+    if (id !== "pending_community") {
+      marker.remove();
+      appState.map.markerIndex.delete(id);
+    }
+  }
+
+  if (appState.ui.viewMode === "neighbourhoods") return;
+
+  const mapList = (appState.ui.prefsOpen && !appState.ui.profileSettingsMode)
+    ? mergedAttractions().filter(passesProfileFilters)
+    : list;
+
+  const attrs = mapList.slice(0, VIEW_LIMITS.map).filter(a => {
+    if (a.isPolygon) return false;
+    const lat = Number(a.lat);
+    const lng = Number(a.lng);
+    return Number.isFinite(lat) && Number.isFinite(lng);
+  });
+
+  const ordered = [...attrs].sort((a, b) => {
+    const aPhoto = appState.data.photoTopIds.has(a.id) || (appState.ui.selectedAttractionId === a.id && !!a.photo);
+    const bPhoto = appState.data.photoTopIds.has(b.id) || (appState.ui.selectedAttractionId === b.id && !!b.photo);
+    const aOrbit = appState.data.orbitTopIds.has(a.id);
+    const bOrbit = appState.data.orbitTopIds.has(b.id);
+
+    const aTier = aPhoto ? 2 : (aOrbit ? 1 : 0);
+    const bTier = bPhoto ? 2 : (bOrbit ? 1 : 0);
+    return aTier - bTier; // regular first, orbits second, photos last (on top)
+  });
+
+  ordered.forEach(a => {
+    const lat = Number(a.lat);
+    const lng = Number(a.lng);
+    const isSelected = appState.ui.selectedAttractionId === a.id;
+    const isPhotoTop = (appState.data.photoTopIds.has(a.id) || (isSelected && !!a.photo)) && !!a.photo;
+    const isOrbitTop = appState.data.orbitTopIds.has(a.id);
+    const color = markerColor(a);
+
+    const el = document.createElement("div");
+    el.className = "marker-shell";
+    el.dataset.action = "select-attraction";
+    el.dataset.id = a.id;
+    
+    const inner = document.createElement("div");
+    inner.className = "marker-core";
+    el.appendChild(inner);
+    
+    if (String(color).includes("gradient")) {
+      inner.classList.add("community");
+      inner.style.setProperty("--community-color", color);
+      inner.style.background = color;
+      inner.style.color = "#5b5b5b";
+    } else {
+      inner.style.background = color;
+      inner.style.color = color;
+    }
+    
+    const isCommunityGem = a.isCommunity || a.gem === "community";
+    const hasPhoto = !!a.photo;
+    const isEditing = appState.ui.editingCommunityGemId === a.id;
+    
+    if (isCommunityGem && hasPhoto) {
+      inner.classList.add("photo-marker");
+      inner.style.backgroundImage = `url(${a.photo})`;
+      inner.style.backgroundSize = "cover";
+      inner.style.backgroundPosition = "center";
+      inner.style.border = `2px solid ${/gradient/.test(String(color)) ? "#0F52BA" : color}`;
+    } else if (isPhotoTop && hasPhoto) {
+      inner.classList.add("photo-marker");
+      inner.style.backgroundImage = `url(${a.photo})`;
+      inner.style.backgroundSize = "cover";
+      inner.style.backgroundPosition = "center";
+      inner.style.border = `2px solid ${/gradient/.test(String(color)) ? "#0F52BA" : color}`;
+    } else if (isCommunityGem && !hasPhoto) {
+      inner.classList.add("community-orbit");
+    } else if (isOrbitTop) {
+      inner.classList.add("top-gem");
+    }
+        
+    el.classList.toggle("selected", isSelected);
+
+    el.addEventListener("click", (evt) => {
+      evt.stopPropagation();
+      selectAttraction(a.id);
+    });
+
+    const popup = new maplibregl.Popup({ offset: 10 }).setHTML(`
+      <div style="font-family:var(--font-ui);display:grid;gap:3px">
+        <div style="font-weight:900;font-size:12px">${escapeHtml(a.name)}</div>
+        <div style="font-size:11px;color:#666">${Math.round(a.matchScore || 0)}% match</div>
+      </div>
+    `);
+
+    const marker = new maplibregl.Marker({
+      element: el,
+      anchor: "center",
+      offset: [0, 0],
+      subpixelPositioning: true
+    })
+      .setLngLat([lng, lat])
+      .setPopup(popup)
+      .addTo(map);
+
+    appState.map.markerIndex.set(a.id, marker);
+  });
+
+  if (appState.ui.addingCommunityGem && appState.map.pendingCommunityLngLat) {
+    const [lng, lat] = appState.map.pendingCommunityLngLat;
+    let p = appState.map.markerIndex.get("pending_community");
+
+    if (!p) {
+      const el = document.createElement("div");
+      el.className = "marker-shell";
+
+      const inner = document.createElement("div");
+      inner.className = "marker-core";
+      inner.style.background = appState.ui.communityDraftGradient || COMMUNITY_GRADIENTS[0];
+      el.appendChild(inner);
+
+      p = new maplibregl.Marker({
+        element: el,
+        anchor: "center",
+        offset: [0, 0]
+      }).setLngLat([lng, lat]).addTo(map);
+
+      appState.map.markerIndex.set("pending_community", p);
+    } else {
+      p.setLngLat([lng, lat]);
+    }
+  } else if (appState.map.markerIndex.has("pending_community")) {
+    appState.map.markerIndex.get("pending_community").remove();
+    appState.map.markerIndex.delete("pending_community");
+  }
+}
+
+// =====================================================================
+// BLOCK 10: RENDER HELPERS + UI RENDERERS (REWRITE)
+// =====================================================================
+function profileChip(s){ return `<span class="profile-chip">${escapeHtml(s)}</span>`; }
+function actionBtn(kind, id, active){
+  const cls = active ? `act-btn active ${kind}` : "act-btn";
+  const label = kind === "like" ? "♥ Like" : kind === "save" ? "+ Save" : "✓ Visited";
+  return `<button class="${cls}" data-action="toggle-interaction" data-kind="${kind}" data-id="${escapeHtml(id)}">${label}</button>`;
+}
+function actionIconBtn(kind, id, active){
+  const cls = active ? `act-btn active ${kind}` : "act-btn";
+  const icon = kind === "like" ? "♥" : kind === "save" ? "+" : "✓";
+  return `<button class="${cls}" data-action="toggle-interaction" data-kind="${kind}" data-id="${escapeHtml(id)}">${icon}</button>`;
+}
+function linkBtn(label, url){ return url ? `<a class="link-btn" href="${url}" target="_blank" rel="noopener noreferrer">${label}</a>` : ""; }
+function setCommunityButtonStyle(){
+  const grad = appState.ui.communityDraftGradient || COMMUNITY_GRADIENTS[0];
+  document.querySelectorAll("#communityMainBtn, #communityMainBtnList").forEach(btn => {
+    btn.style.background = grad;
+    btn.classList.toggle("disabled", appState.ui.addingCommunityGem && !!appState.map.pendingCommunityLngLat);
+  });
+}
+
+function renderPresetButtons(targetId){
+  const el = document.getElementById(targetId); if (!el) return;
+  el.innerHTML = presets.map((p,i) => `<button class="preset-btn ${appState.preferences.selectedPreset === p.name ? "active" : ""}" data-action="apply-preset" data-idx="${i}">${p.name}</button>`).join("");
+}
+function sliderHtml(prefix){
+  return Object.entries(DIMENSIONS).map(([k,label]) => {
+    const val = Number(appState.preferences.weights[k]);
+    const pct = Math.max(0, Math.min(100, (val / 10) * 100));
+    return `
+    <div class="slider-row">
+      <div class="slider-label"><span>${label}</span><span class="slider-value" id="${prefix}_val_${k}">${val}</span></div>
+      <div class="slider-track-wrap">
+        <input type="range" min="0" max="10" step="1" value="${val}" style="--fill-pct:${pct}%" data-action="weight-input" data-key="${k}">
+      </div>
+    </div>
+  `;
+  }).join("");
+}
+function renderSliders(){
+  const ob = document.getElementById("onboardingSliders");
+  const dr = document.getElementById("drawerSliders");
+  if (ob) ob.innerHTML = sliderHtml("ob");
+  if (dr) dr.innerHTML = sliderHtml("dr");
+}
+function renderGemChips(targetId){
+  const el = document.getElementById(targetId); if (!el) return;
+  el.innerHTML = GEM_FAMILIES.map(g => {
+    const active = appState.preferences.activeGemFamilies.has(g.key);
+    return `<button class="chip ${g.key} ${active ? "active" : "dimmed"}" data-action="toggle-gem-family" data-key="${g.key}">${g.label}</button>`;
+  }).join("");
+}
+function renderDrawerProfilePanel(){
+  const wrap = document.getElementById("drawerSavedWrap");
+  if (!wrap) return;
+  const g = appState.ui.selectedProfileGroup;
+  const myGems = appState.data.communityGems.filter(c => SESSION_GEM_IDS.has(c.id));
+  const countByGroup = {
+    liked: appState.userActions.liked.size,
+    saved: appState.userActions.saved.size,
+    visited: appState.userActions.visited.size,
+    mine: myGems.length
+  };
+  const filterChip = (k, label, color) =>
+    `<button class="profile-filter-chip ${g===k?'active':''}"
+      style="${g===k?`background:${color};border-color:${color};color:#fff`:'color:#8d877d'}"
+      data-action="set-profile-group" data-filter="${k}">${label} (${countByGroup[k]||0})</button>`;
+
+  const items = g === "mine"
+    ? myGems
+    : mergedAttractions().filter(passesProfileFilters);
+
+  const actionSymbols = (a) => {
+    const isMine = SESSION_GEM_IDS.has(a.id);
+    const editBtn = isMine ? `<button class="act-btn" data-action="edit-community-gem" data-id="${escapeHtml(a.id)}">✏</button>` : "";
+    const delBtn  = isMine ? `<button class="act-btn" data-action="delete-community-gem" data-id="${escapeHtml(a.id)}">✕</button>` : "";
+    if (g === "liked")   return actionIconBtn("like",""+a.id,true) + actionIconBtn("visit",""+a.id,appState.userActions.visited.has(a.id)) + editBtn + delBtn;
+    if (g === "saved")   return actionIconBtn("save",""+a.id,true) + actionIconBtn("visit",""+a.id,appState.userActions.visited.has(a.id)) + editBtn + delBtn;
+    if (g === "visited") return actionIconBtn("like",""+a.id,appState.userActions.liked.has(a.id)) + actionIconBtn("visit",""+a.id,true) + editBtn + delBtn;
+    if (g === "mine")    return editBtn + delBtn;
+    return "";
+  };
+
+  const cards = items.length
+    ? items.slice(0,24).map(a => {
+        const color = markerColor(a);
+        const dotStyle = String(color).includes("gradient")
+          ? `background:linear-gradient(135deg,#E0115F 0%,#0F52BA 50%,#00B571 100%)`
+          : `background:${color}`;
+        return `
+        <article class="attn-card" tabindex="0" data-action="select-attraction" data-id="${escapeHtml(a.id)}">
+          <div class="attn-head">
+            <div>
+              <h3 class="attn-title">${escapeHtml(a.name)}</h3>
+              <div class="attn-meta"><span class="gem-dot" style="${dotStyle}"></span><span>${escapeHtml(a.category||"Attraction")}</span></div>
+            </div>
+          </div>
+          <div class="actions-row">${actionSymbols(a)}</div>
+        </article>`;
+      }).join("")
+    : `<div class="small-note">No places in this group yet.</div>`;
+
+  // Route button — shown only in "saved" tab and when >= 2 saved gems
+  const savedCount = appState.userActions.saved.size;
+  const routeSection = (g === "saved")
+    ? (savedCount >= 2
+        ? `<button class="community-btn" style="margin-bottom:4px;background:linear-gradient(135deg,#0F52BA 0%,#00B571 100%)" data-action="generate-route">Generate Route (${Math.min(savedCount,5)})</button>`
+        : `<div class="small-note" style="margin-bottom:4px">Save at least 2 gems to generate a route.</div>`)
+    : "";
+
+  wrap.innerHTML = `
+    <div class="section-title">My Profile</div>
+    <div class="profile-filter-row">
+      ${filterChip("liked","Liked","#E0115F")}
+      ${filterChip("saved","Saved","#0F52BA")}
+      ${filterChip("visited","Visited","#00B571")}
+      ${filterChip("mine","My Gems","#6C5CE7")}
+    </div>
+    ${routeSection}
+    <div class="attn-list">${cards}</div>`;
+}
+
+function renderDrawerPanels(){
+  const settingsWrap = document.getElementById("drawerSettingsWrap");
+  const savedWrap = document.getElementById("drawerSavedWrap");
+  const isSettings = !!appState.ui.profileSettingsMode;
+  if (settingsWrap) settingsWrap.classList.toggle("hidden", !isSettings);
+  if (savedWrap) savedWrap.classList.toggle("hidden", isSettings);
+}
+
+function renderAllPreferenceUI(){
+  renderPresetButtons("onboardingPresetGrid");
+  renderPresetButtons("drawerPresetGrid");
+  renderSliders();
+  renderGemChips("onboardingGemChips");
+  renderGemChips("drawerGemChips");
+  renderDrawerPanels();
+  renderDrawerProfilePanel();  // ← add if not already here
+}
+
+function renderNicheQuestionBox(){
+  return `
+    <div class="niche-question">
+      <div class="small-note"><strong>Is it unknown niche enough?</strong></div>
+      <div class="niche-actions">
+        <button class="niche-feedback" data-action="niche-feedback" data-dir="more">Show more niche</button>
+        <button class="niche-feedback" data-action="niche-feedback" data-dir="less">Show more popular</button>
+      </div>
+    </div>
+  `;
+}
+
+function renderList(list){
+  const cont = document.getElementById("listContainer"); if (!cont) return;
+  if (!list.length) {
+    const msg = appState.ui.viewMode === "neighbourhoods"
+      ? "No neighbourhood polygons found. Check polygon_geometry values in your data."
+      : "No results match your current filters.";
+    cont.innerHTML = `<div class="small-note">${msg}</div>`;
+    return;
+  }
+
+  const cards = list.slice(0, VIEW_LIMITS.list).map((a) => {
+    const color = markerColor(a);
+    const dotStyle = String(color).includes("gradient")
+      ? `background:linear-gradient(135deg,#E0115F 0%,#0F52BA 50%,#00B571 100%)`
+      : `background:${color}`;
+    return `
+    <article class="attn-card ${appState.ui.selectedAttractionId === a.id ? "selected" : ""}" tabindex="0" data-action="select-attraction" data-id="${escapeHtml(a.id)}">
+      <div class="attn-head">
+        <div>
+          <h3 class="attn-title">${escapeHtml(a.name)}</h3>
+          <div class="attn-meta">
+            <span class="gem-dot" style="${dotStyle}"></span>
+            <span>${escapeHtml(a.category || "Attraction")}</span>${a.area ? `<span>•</span><span>${escapeHtml(a.area)}</span>` : ""}
+          </div>
+        </div>
+        <div class="score-pill">${Math.round(a.matchScore)}%</div>
+      </div>
+      <div class="actions-row">
+        ${actionBtn("like", a.id, appState.userActions.liked.has(a.id))}
+        ${actionBtn("save", a.id, appState.userActions.saved.has(a.id))}
+        ${actionBtn("visit", a.id, appState.userActions.visited.has(a.id))}
+      </div>
+    </article>`;
+  });
+
+  // Niche question box appears after 7th result (index 6), not 10th
+  const showNicheBox = appState.ui.viewMode === "attractions" && cards.length > 7;
+  const listHtml = showNicheBox
+    ? (cards.slice(0, 7).join("") + renderNicheQuestionBox() + cards.slice(7).join(""))
+    : cards.join("");
+  cont.innerHTML = listHtml;
+}
+
+function getDirectionsUrl(gmUrl){
+  if (!gmUrl) return "";
+  try{
+    const url = new URL(gmUrl);
+    const q = url.searchParams.get("query") || "";
+    const pid = url.searchParams.get("query_place_id") || "";
+    const dest = encodeURIComponent(q);
+    return `https://www.google.com/maps/dir/?api=1&destination=${dest}${pid ? `&destination_place_id=${encodeURIComponent(pid)}` : ""}&travelmode=walking`;
+  }catch(_e){ return gmUrl; }
+}
+
+function resolveImageUrl(photo, name){
+  const fallback = `https://picsum.photos/seed/${encodeURIComponent(name || "fallback")}/1200/700`;
+  const raw = String(photo || "").trim();
+  if (!raw) return fallback;
+  if (raw.includes("${") || raw.includes("%7B") || raw.includes("%7D")) return fallback;
+  if (!/^https?:\/\//i.test(raw)) return fallback;
+  return raw;
+}
+
+function renderDetail(a){
+  const view = document.getElementById("detailView"); if (!view) return;
+  if (!a) { view.innerHTML = `<div class="small-note">Select a place to view details.</div>`; return; }
+  const imgUrl = resolveImageUrl(a.photo, a.name);
+  const directionUrl = getDirectionsUrl(a.gm_url);
+  const dimHtml = Object.entries(DIMENSIONS).map(([k,label]) => {
+    const raw = a.dims && a.dims[k] != null ? Number(a.dims[k]) : Number(a.avg_score || 0);
+    const pct = a.isCommunity ? 100 : ((raw / 10) * 100);
+    const txt = a.isCommunity ? "♥" : (raw ? raw.toFixed(1) : "N/A");
+    const fill = markerColor(a);
+    return `<div><div class="dim-row"><span>${label}</span><span>${txt}</span></div><div class="dim-track"><div class="dim-fill" style="width:${pct}%;background:${fill}"></div></div></div>`;
+  }).join("");
+
+  const linksLine = [
+    linkBtn("Google Maps", a.gm_url),
+    linkBtn("Trip.com", a.trip_url),
+    linkBtn("TripAdvisor", a.ta_url),
+    linkBtn("Get me there", directionUrl)
+  ].filter(Boolean).join("");
+
+  view.innerHTML = `
+    <div class="detail-grid fade-in">
+      <div class="detail-sticky">
+        <div class="detail-topline">
+          <button class="link-btn" data-action="clear-selection">← Back</button>
+          <h2 class="detail-title">${escapeHtml(a.name)}</h2>
+        </div>
+      </div>
+      ${(a.isCommunity && a.photo) ? `<img class="detail-img" src="${escapeHtml(a.photo)}" alt="${escapeHtml(a.name)}" style="border:2px solid ${/gradient/.test(markerColor(a)) ? '#0F52BA' : markerColor(a)}">` : a.isCommunity ? `<div class="detail-img" style="background:${markerColor(a)};opacity:.5;position:relative;overflow:hidden"><div style="position:absolute;inset:0;background:repeating-linear-gradient(135deg,rgba(255,255,255,.45) 0 8px,rgba(255,255,255,0) 8px 16px)"></div></div>` : `<img class="detail-img" src="${imgUrl}" alt="${escapeHtml(a.name)}" onerror="this.onerror=null;this.src='https://picsum.photos/seed/fallback/1200/700'">`}
+      <p class="serif-text">${escapeHtml(a.summary || "No editorial summary available yet.")}</p>
+      <div class="actions-row">
+        ${actionBtn("like", a.id, appState.userActions.liked.has(a.id))}
+        ${actionBtn("save", a.id, appState.userActions.saved.has(a.id))}
+        ${actionBtn("visit", a.id, appState.userActions.visited.has(a.id))}
+      </div>
+      <div class="actions-row links">${linksLine}</div>
+      <div><h3 class="section-title">Dimensions</h3><div class="dim-grid">${dimHtml}</div></div>
+    </div>`;
+}
+
+function communityFormHtml(editGem){
+  const hasPoint = !!appState.map.pendingCommunityLngLat;
+  const isEdit = !!editGem;
+  const nameVal = editGem ? escapeHtml(editGem.name) : "";
+  const tagVal  = editGem ? escapeHtml(editGem.category) : "";
+  const sumVal  = editGem ? escapeHtml(editGem.summary) : "";
+  const photoVal= editGem ? escapeHtml(editGem.photo || "") : "";
+
+  const photoSection = `
+    <div class="field">
+      <label for="cg_photo">Photo (optional)</label>
+      ${photoVal
+        ? `<img class="photo-preview" id="cgPhotoPreview" src="${photoVal}" alt="Preview">`
+        : `<img class="photo-preview hidden" id="cgPhotoPreview" src="" alt="Preview">`}
+      <label class="photo-upload-area" for="cg_photo_file">
+        📷 ${photoVal ? "Change photo" : "Upload a photo"}
+      </label>
+      <input type="file" id="cg_photo_file" accept="image/*" style="display:none">
+      <input type="hidden" id="cg_photo" name="photo" value="${photoVal}">
+    </div>`;
+
+  return `
+    <div class="small-note">${
+      isEdit ? "Editing gem — update details below." :
+      hasPoint ? "Location set. Fill details and save." : "Pick a location on the map first."
+    }</div>
+    <form id="communityGemForm" style="display:grid;gap:8px;margin-top:5px" data-edit-id="${isEdit ? escapeHtml(editGem.id) : ""}">
+      <div class="field"><label for="cg_name">Name</label><input id="cg_name" name="name" required placeholder="Name of the hidden gem" value="${nameVal}"></div>
+      <div class="field"><label for="cg_tag">Tag</label><input id="cg_tag" name="tag" placeholder="e.g. A place for a date" value="${tagVal}"></div>
+      <div class="field"><label for="cg_summary">Short story</label><textarea id="cg_summary" name="summary" placeholder="Why is this special?">${sumVal}</textarea></div>
+      ${photoSection}
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="community-btn ${(!isEdit && !hasPoint) ? "disabled" : ""}" type="submit" ${(!isEdit && !hasPoint) ? "disabled" : ""}>${isEdit ? "Update" : "Save"}</button>
+        <button class="link-btn" type="button" data-action="cancel-community-gem">Cancel</button>
+      </div>
+      <div id="communityFormError" class="small-note" aria-live="polite"></div>
+    </form>`;
+}
+
+function passesProfileFilters(a){
+  const g = appState.ui.selectedProfileGroup;
+  if (g === "liked")   return appState.userActions.liked.has(a.id);
+  if (g === "saved")   return appState.userActions.saved.has(a.id);
+  if (g === "visited") return appState.userActions.visited.has(a.id);
+  if (g === "mine")    return SESSION_GEM_IDS.has(a.id);
+  return false;
+}
+
+function renderProfile(){
+  const cont = document.getElementById("profileContainer"); if (!cont) return;
+
+  if (appState.ui.addingCommunityGem) {
+    const editGem = appState.ui.editingCommunityGemId
+      ? appState.data.communityGems.find(g => g.id === appState.ui.editingCommunityGemId)
+      : null;
+    cont.innerHTML = `
+      <div class="detail-grid">
+        <button class="community-btn" id="communityMainBtnList" data-action="start-community-gem">Click on a map!</button>
+        <div id="communityFormWrap">${communityFormHtml(editGem)}</div>
+      </div>
+    `;
+    setCommunityButtonStyle();
+    // Wire up photo file input
+    const fileInput = document.getElementById("cg_photo_file");
+    const photoHidden = document.getElementById("cg_photo");
+    const preview = document.getElementById("cgPhotoPreview");
+    if (fileInput) {
+      fileInput.addEventListener("change", () => {
+        const file = fileInput.files && fileInput.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          const dataUrl = e.target.result;
+          photoHidden.value = dataUrl;
+          preview.src = dataUrl;
+          preview.classList.remove("hidden");
+        };
+        reader.readAsDataURL(file);
+      });
+    }
+    return;
+  }
+
+  // "My gems" = only session-created gems
+  const myGems = appState.data.communityGems.filter(g => SESSION_GEM_IDS.has(g.id));
+  const items = appState.ui.selectedProfileGroup === "mine"
+    ? myGems
+    : mergedAttractions().filter(passesProfileFilters);
+
+  const filterChip = (k,label,color) => {
+    const count = k === "mine" ? myGems.length
+      : k === "liked" ? appState.userActions.liked.size
+      : k === "saved" ? appState.userActions.saved.size
+      : appState.userActions.visited.size;
+    return `<button class="profile-filter-chip ${appState.ui.selectedProfileGroup === k ? "active" : ""}" style="${appState.ui.selectedProfileGroup === k ? `background:${color};border-color:${color};color:#fff` : "color:#8d877d"}" data-action="set-profile-group" data-filter="${k}">${label} (${count})</button>`;
+  };
+
+  if (appState.ui.profileSettingsMode) {
+    cont.innerHTML = `<div class="detail-grid"><div class="section-title">Profile settings</div><div class="small-note">Use Preferences to tune rankings and categories. Saved gems stay here in your profile.</div></div>`;
+    return;
+  }
+
+  // Route button — only show when >= 2 gems saved
+  const savedCount = appState.userActions.saved.size;
+  const routeBtn = savedCount >= 2
+    ? `<button class="community-btn" style="background:linear-gradient(135deg,#0F52BA 0%,#00B571 100%)" data-action="generate-route">🗺 Generate Route (${Math.min(savedCount,5)} gems)</button>`
+    : `<div class="small-note">Save at least 2 gems to generate a route.</div>`;
+
+  const actionSymbols = (a) => {
+    const isMine = SESSION_GEM_IDS.has(a.id);
+    const editBtn = isMine ? `<button class="act-btn" data-action="edit-community-gem" data-id="${escapeHtml(a.id)}">✏ Edit</button>` : "";
+    const delBtn  = isMine ? `<button class="act-btn" data-action="delete-community-gem" data-id="${escapeHtml(a.id)}">✕ Delete</button>` : "";
+    if (appState.ui.selectedProfileGroup === "liked")   return `${actionIconBtn("like", a.id, true)} ${actionIconBtn("visit", a.id, appState.userActions.visited.has(a.id))} ${editBtn} ${delBtn}`;
+    if (appState.ui.selectedProfileGroup === "saved")   return `${actionIconBtn("save", a.id, true)} ${actionIconBtn("visit", a.id, appState.userActions.visited.has(a.id))} ${editBtn} ${delBtn}`;
+    if (appState.ui.selectedProfileGroup === "visited") return `${actionIconBtn("like", a.id, appState.userActions.liked.has(a.id))} ${actionIconBtn("visit", a.id, true)} ${editBtn} ${delBtn}`;
+    if (appState.ui.selectedProfileGroup === "mine")    return `${editBtn} ${delBtn}`;
+    return "";
+  };
+
+  const cards = items.length ? items.map(a => {
+    const color = markerColor(a);
+    const dotStyle = String(color).includes("gradient")
+      ? `background:linear-gradient(135deg,#E0115F 0%,#0F52BA 50%,#00B571 100%)`
+      : `background:${color}`;
+    return `
+    <article class="attn-card" tabindex="0" data-action="select-attraction" data-id="${escapeHtml(a.id)}">
+      <div class="attn-head">
+        <div>
+          <h3 class="attn-title">${escapeHtml(a.name)}</h3>
+          <div class="attn-meta"><span class="gem-dot" style="${dotStyle}"></span><span>${escapeHtml(a.category || "Attraction")}</span></div>
+        </div>
+      </div>
+      <div class="actions-row">${actionSymbols(a)}</div>
+    </article>`;
+  }).join("") : `<div class="small-note">No places in this group yet.</div>`;
+
+  cont.innerHTML = `
+    <div class="detail-grid">
+      <div class="profile-stats">
+        ${profileChip(`Liked ${appState.userActions.liked.size}`)}
+        ${profileChip(`Saved ${appState.userActions.saved.size}`)}
+        ${profileChip(`Visited ${appState.userActions.visited.size}`)}
+        ${profileChip(`My Gems ${myGems.length}`)}
+      </div>
+      <div class="profile-filter-row">
+        ${filterChip("liked","Liked","#E0115F")}
+        ${filterChip("saved","Saved","#0F52BA")}
+        ${filterChip("visited","Visited","#00B571")}
+        ${filterChip("mine","My Gems","#6C5CE7")}
+      </div>
+      ${appState.ui.selectedProfileGroup === "saved" ? routeBtn : ""}
+      <div class="attn-list">${cards}</div>
+    </div>`;
+  setCommunityButtonStyle();
+}
+
+function applyTabUi(tab){
+  document.getElementById("listView")?.classList.toggle("hidden", tab !== "list");
+  document.getElementById("detailView")?.classList.toggle("hidden", tab !== "detail");
+  document.getElementById("profileView")?.classList.toggle("hidden", tab !== "profile");
+  document.getElementById("routeView")?.classList.toggle("hidden", tab !== "route");
+  document.getElementById("tabListBtn")?.classList.toggle("active", tab === "list" || tab === "detail");
+  if (tab === "route") renderRouteView();
+}
+
+// =====================================================================
+// ROUTE FEATURE — TSP brute-force for ≤5 saved gems
+// =====================================================================
+function haversineKm(a, b){
+  const R = 6371;
+  const dLat = (b.lat - a.lat) * Math.PI / 180;
+  const dLng = (b.lng - a.lng) * Math.PI / 180;
+  const s = Math.sin(dLat/2)**2 + Math.cos(a.lat*Math.PI/180)*Math.cos(b.lat*Math.PI/180)*Math.sin(dLng/2)**2;
+  return R * 2 * Math.atan2(Math.sqrt(s), Math.sqrt(1-s));
+}
+
+function permutations(arr){
+  if (arr.length <= 1) return [arr];
+  return arr.flatMap((v,i) => permutations([...arr.slice(0,i),...arr.slice(i+1)]).map(p => [v,...p]));
+}
+
+function routeLength(pts){
+  let d = 0;
+  for (let i = 0; i < pts.length - 1; i++) d += haversineKm(pts[i], pts[i+1]);
+  return d;
+}
+
+function pickRouteCandidates(savedGems){
+  // Filter to gems with valid coordinates
+  const valid = savedGems.filter(a => a.lat != null && a.lng != null && Number.isFinite(Number(a.lat)) && Number.isFinite(Number(a.lng)));
+  if (valid.length <= 5) return valid;
+
+  // Find tightest cluster of 5: for each gem, sum distances to its 4 nearest neighbours
+  let bestSeed = valid[0], bestScore = Infinity;
+  for (const gem of valid){
+    const dists = valid.filter(x => x.id !== gem.id).map(x => haversineKm(gem, x)).sort((a,b)=>a-b);
+    const score = dists.slice(0,4).reduce((s,d)=>s+d, 0);
+    if (score < bestScore){ bestScore = score; bestSeed = gem; }
+  }
+  const others = valid.filter(x => x.id !== bestSeed.id).sort((a,b) => haversineKm(bestSeed,a) - haversineKm(bestSeed,b));
+  return [bestSeed, ...others.slice(0,4)];
+}
+
+function optimalRoute(pts){
+  if (pts.length <= 1) return pts;
+  let best = pts, bestLen = routeLength(pts);
+  for (const perm of permutations(pts)){
+    const len = routeLength(perm);
+    if (len < bestLen){ bestLen = len; best = perm; }
+  }
+  return { ordered: best, totalKm: bestLen };
+}
+
+function generateRoute(){
+  const savedIds = [...appState.userActions.saved];
+  const savedGems = mergedAttractions().filter(a => savedIds.includes(a.id));
+  const candidates = pickRouteCandidates(savedGems);
+
+  if (candidates.length < 2){
+    alert("Save at least 2 gems with map locations to generate a route!");
+    return;
+  }
+
+  const { ordered, totalKm } = optimalRoute(candidates);
+  appState.ui.activeRoute = { gems: ordered, totalKm };
+  setActiveTab("route");
+  drawRouteOnMap(ordered);
+  updateApp();
+}
+
+function drawRouteOnMap(ordered){
+  const map = appState.map.instance;
+  if (!map || !map.isStyleLoaded()) return;
+
+  const coords = ordered.map(a => [Number(a.lng), Number(a.lat)]);
+
+  // Remove existing route layers
+  if (map.getLayer("route-line")) map.removeLayer("route-line");
+  if (map.getLayer("route-line-bg")) map.removeLayer("route-line-bg");
+  if (map.getSource("route")) map.removeSource("route");
+
+  map.addSource("route", {
+    type: "geojson",
+    data: { type: "Feature", geometry: { type: "LineString", coordinates: coords } }
+  });
+  map.addLayer({ id: "route-line-bg", type: "line", source: "route",
+    paint: { "line-color": "#fff", "line-width": 5, "line-opacity": 0.7 }
+  });
+  map.addLayer({ id: "route-line", type: "line", source: "route",
+    paint: { "line-color": "#0F52BA", "line-width": 3, "line-dasharray": [2, 2], "line-opacity": 0.9 }
+  });
+
+  // Fit map to route
+  const lngs = coords.map(c=>c[0]), lats = coords.map(c=>c[1]);
+  map.fitBounds([[Math.min(...lngs), Math.min(...lats)],[Math.max(...lngs), Math.max(...lats)]], { padding: 60, maxZoom: 15, duration: 500 });
+}
+
+function clearRoute() {
+  appState.ui.routeMode = false;
+  appState.ui.routeGemIds = [];
+  appState.ui.routeOrdered = [];
+  appState.ui.activeRoute = null;
+  clearRouteFromMap();
+  document.getElementById("routeBanner")?.remove();
+  setActiveTab("list");  // ← this is the key missing line
+  updateApp();
+}
+
+function renderRouteView(){
+  const cont = document.getElementById("routeContainer");
+  if (!cont) return;
+  const route = appState.ui.activeRoute;
+  if (!route || !route.gems || !route.gems.length){
+    cont.innerHTML = `<div class="small-note">No route generated yet. Save some gems and click "Generate Route".</div>`;
+    return;
+  }
+  const { gems, totalKm } = route;
+  const stops = gems.map((a, i) => {
+    const nextDist = i < gems.length - 1 ? haversineKm(a, gems[i+1]).toFixed(2) : null;
+    return `
+      <div class="route-stop" data-action="select-attraction" data-id="${escapeHtml(a.id)}" style="cursor:pointer">
+        <div class="route-stop-num">${i+1}</div>
+        <div>
+          <div style="font-weight:900;font-size:13px">${escapeHtml(a.name)}</div>
+          <div class="route-stop-leg">${escapeHtml(a.area || a.category || "")}</div>
+          ${nextDist ? `<div class="route-stop-leg">↓ ${nextDist} km to next stop</div>` : ""}
+        </div>
+      </div>`;
+  }).join("");
+
+  cont.innerHTML = `
+    <div class="route-panel">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:8px">
+        <div class="section-title">Your Route</div>
+        <button class="route-clear-btn" data-action="clear-route">✕ Clear</button>
+      </div>
+      <div class="route-total">Total distance: ~${totalKm.toFixed(1)} km (straight-line)</div>
+      ${stops}
+      <div class="small-note info">Tap any stop to see full details. Route is straight-line — actual walking may differ.</div>
+    </div>`;
+}
+
+// =====================================================================
+// BLOCK 11: ACTIONS + UPDATE CYCLE (REWRITE)
+// =====================================================================
+function setActiveTab(tab){ appState.ui.activeTab = tab; applyTabUi(tab); if (tab === "profile") renderProfile(); }
+function togglePrefs(force){
+  const open = typeof force === "boolean" ? force : !appState.ui.prefsOpen;
+  appState.ui.prefsOpen = open;
+  document.body.classList.toggle("prefs-open", open);
+  // When drawer closes, reset profile selection so map returns to standard view
+  if (!open) {
+    appState.ui.selectedProfileGroup = null;
+    appState.ui.profileSettingsMode = false;
+  }
+  updateApp();
+  if (appState.map.instance) setTimeout(() => appState.map.instance.resize(), 220);
+}
+function toggleAdvanced(panelId, btnId, stateKey){
+  appState.ui[stateKey] = !appState.ui[stateKey];
+  document.getElementById(panelId)?.classList.toggle("open", appState.ui[stateKey]);
+  document.getElementById(btnId)?.classList.toggle("open", appState.ui[stateKey]);
+}
+function applyPreset(idx){
+  const p = presets[idx]; if (!p) return;
+  appState.preferences.selectedPreset = p.name;
+  if (p.name === "Community Gems"){
+    appState.preferences.activeGemFamilies = new Set(["community"]);
+  } else if (p.name !== "Custom"){
+    appState.preferences.weights = { ...p.weights };
+    appState.preferences.activeGemFamilies = new Set(p.families);
+  } else {
+    appState.ui.drawerAdvancedOpen = true;
+    appState.ui.onboardingAdvancedOpen = true;
+    appState.ui.profileSettingsMode = true;
+    document.getElementById("advancedPanel")?.classList.add("open");
+    document.getElementById("onboardingAdvancedPanel")?.classList.add("open");
+    document.getElementById("toggleAdvancedBtn")?.classList.add("open");
+    document.getElementById("toggleOnboardingAdvancedBtn")?.classList.add("open");
+    document.getElementById("onboardingHeroBlock")?.classList.add("move-up");
+  }
+  updateApp();
+}
+function setPresetCustom(){ appState.preferences.selectedPreset = "Custom"; }
+function updateWeight(key, v){
+  appState.preferences.weights[key] = Number(v);
+  setPresetCustom();
+  for (const id of [`ob_val_${key}`,`dr_val_${key}`]) { const el = document.getElementById(id); if (el) el.textContent = String(v); }
+  updateApp();
+}
+function toggleGemFamily(key){
+  if (appState.preferences.activeGemFamilies.has(key)) appState.preferences.activeGemFamilies.delete(key);
+  else appState.preferences.activeGemFamilies.add(key);
+  setPresetCustom(); updateApp();
+}
+function applyNicheFeedback(dir){
+  if (dir === "keep") return;
+  appState.preferences.hiddenNicheTarget += dir === "more" ? -1 : 1;
+  appState.preferences.hiddenNicheTarget = Math.max(1, Math.min(10, appState.preferences.hiddenNicheTarget));
+  updateApp();
+}
+function toggleInteraction(kind, id){
+  const bucket = kind === "like" ? appState.userActions.liked : kind === "save" ? appState.userActions.saved : appState.userActions.visited;
+  if (bucket.has(id)) bucket.delete(id); else bucket.add(id);
+  // interaction does not affect ranking order (scores unchanged), but UI state refreshes.
+  renderList(appState.data.ranked); renderDetail(getSelectedAttraction()); if (appState.ui.activeTab === "profile") renderProfile();
+}
+function clearSelection(){ appState.ui.selectedAttractionId = null; setActiveTab("list"); updateApp(); }
+function selectAttraction(id){
+  const picked = mergedAttractions().find(x => x.id === id);
+
+  if (appState.ui.viewMode === "neighbourhoods" && picked && picked.isPolygon) {
+    openNeighborhood(picked.id, picked.name || "");
+    return;
+  }
+
+  appState.ui.selectedAttractionId = id;
+  setActiveTab("detail");
+  updateApp();
+  const a = getSelectedAttraction();
+  if (a && a.lng != null && a.lat != null && appState.map.instance) appState.map.instance.flyTo({ center:[a.lng,a.lat], zoom:14, essential:true });
+}
+function startCommunityGemMode(){
+  if (!appState.ui.previousViewState) {
+    appState.ui.previousViewState = {
+      activeTab: appState.ui.activeTab,
+      selectedAttractionId: appState.ui.selectedAttractionId,
+      viewMode: appState.ui.viewMode,
+      selectedNeighborhoodId: appState.ui.selectedNeighborhoodId,
+      selectedNeighborhoodName: appState.ui.selectedNeighborhoodName
+    };
+  }
+
+  appState.ui.addingCommunityGem = true;
+  appState.ui.profileSettingsMode = false;
+  appState.ui.selectedProfileGroup = "mine";
+  appState.preferences.activeGemFamilies.add("community");
+
+  if (!appState.ui.communityDraftGradient) appState.ui.communityDraftGradient = pickCommunityGradient();
+  if (!appState.map.pendingCommunityLngLat) appState.map.pendingCommunityLngLat = null;
+
+  setActiveTab("profile");
+  updateApp();
+}
+function restoreViewAfterCommunityGem(){
+  const prev = appState.ui.previousViewState;
+  if (prev) {
+    appState.ui.activeTab = prev.activeTab || "list";
+    appState.ui.selectedAttractionId = prev.selectedAttractionId || null;
+    appState.ui.viewMode = prev.viewMode || "attractions";
+    appState.ui.selectedNeighborhoodId = prev.selectedNeighborhoodId || null;
+    appState.ui.selectedNeighborhoodName = prev.selectedNeighborhoodName || "";
+  } else {
+    appState.ui.activeTab = "list";
+  }
+  appState.ui.previousViewState = null;
+}
+function cancelCommunityGem(){
+  appState.ui.addingCommunityGem = false;
+  appState.map.pendingCommunityLngLat = null;
+  appState.ui.communityDraftGradient = null;
+  restoreViewAfterCommunityGem();
+  updateApp();
+}
+function saveCommunityGem(){
+  const form = document.getElementById("communityGemForm");
+  const editId = form ? form.dataset.editId : "";
+  const name    = document.getElementById("cg_name")?.value?.trim();
+  const tag     = document.getElementById("cg_tag")?.value?.trim() || "Community tag";
+  const summary = document.getElementById("cg_summary")?.value?.trim() || "";
+  const photo   = document.getElementById("cg_photo")?.value?.trim() || "";
+  const err     = document.getElementById("communityFormError");
+
+  if (!name) { if (err) err.textContent = "Name is required."; return; }
+
+  if (editId) {
+    const gem = appState.data.communityGems.find(g => g.id === editId);
+    if (gem) {
+      gem.name = name;
+      gem.category = tag;
+      gem.summary = summary;
+      if (photo) gem.photo = photo;
+  
+      if (db) {
+        const updates = { name, category: tag, summary: summary || "" };
+        if (photo) updates.photo = photo;
+        db.collection("communityGems").doc(editId).update(updates)
+          .catch(err => console.warn("Firestore update failed:", err));
+      }
+    }
+    appState.ui.editingCommunityGemId = null;
+    appState.ui.addingCommunityGem = false;
+    appState.map.pendingCommunityLngLat = null;
+    appState.ui.communityDraftGradient = null;
+    restoreViewAfterCommunityGem();
+    updateApp();
+    return;
+  }
+
+  if (!appState.map.pendingCommunityLngLat) { if (err) err.textContent = "Click the map first to set location."; return; }
+
+  const dims = {};
+  Object.keys(DIMENSIONS).forEach(k => dims[k] = 10);
+  
+  const [lng, lat] = appState.map.pendingCommunityLngLat;
+  const grad = appState.ui.communityDraftGradient || pickCommunityGradient();
+  const id = "community_" + Date.now();
+  
+  const gemData = {
+    id,
+    name,
+    category: tag,
+    gem: "community",
+    gemColor: grad,
+    rankable: true,
+    hiddengem: true,
+    summary: summary || "",
+    avgscore: 10,
+    lat,
+    lng,
+    dims,
+    evids: [],
+    photo: photo || "",
+    gmrating: null,
+    gmreviews: null,
+    address: "",
+    hours: "",
+    reviews: [],
+    area: "Community submission",
+    distance: "",
+    sources: ["Local user input"],
+    gmurl: "",
+    taurl: "",
+    tripurl: "",
+    popularity: 2,
+    isCommunity: true,
+    authorUid: currentUid || "anon",
+    createdAt: Date.now()
+  };
+  
+  if (db) {
+    // Write to Firestore — onSnapshot will update communityGems automatically
+    db.collection("communityGems").doc(id).set(gemData)
+      .catch(err => console.warn("Firestore write failed:", err));
+  } else {
+    // No Firebase — push locally only
+    appState.data.communityGems.push(gemData);
+  }
+  SESSION_GEM_IDS.add(id);
+
+  // Write new gem to Firestore (including photo)
+  if (db) {
+    db.collection("communityGems").doc(id).set({
+      id, name, category: tag, gem: "community", gemColor: grad,
+      rankable: true, hiddengem: true, summary,
+      avgscore: 10, lat, lng, dims, evids: [],
+      photo: photo || "",
+      gmrating: null, gmreviews: null, address: "", hours: "",
+      reviews: [], area: "Community submission", distance: "",
+      sources: ["Local user input"], gmurl: "", taurl: "", tripurl: "",
+      popularity: 2, isCommunity: true,
+      authorUid: currentUid || "anon",
+      createdAt: firebase.firestore.FieldValue.serverTimestamp()
+    }).catch(err => console.warn("Firestore write failed:", err));
+  }
+
+  appState.ui.addingCommunityGem = false;
+  appState.ui.editingCommunityGemId = null;
+  appState.map.pendingCommunityLngLat = null;
+  appState.ui.communityDraftGradient = null;
+  restoreViewAfterCommunityGem();
+  updateApp();
+}
+function deleteCommunityGem(id){
+  appState.data.communityGems = appState.data.communityGems.filter(g => g.id !== id);
+  SESSION_GEM_IDS.delete(id);
+  appState.userActions.liked.delete(id);
+  appState.userActions.saved.delete(id);
+  appState.userActions.visited.delete(id);
+  if (appState.ui.selectedAttractionId === id) appState.ui.selectedAttractionId = null;
+  updateApp();
+}
+function editCommunityGem(id){
+  if (!SESSION_GEM_IDS.has(id)) return; // only session gems editable
+  const gem = appState.data.communityGems.find(g => g.id === id);
+  if (!gem) return;
+  appState.ui.editingCommunityGemId = id;
+  appState.ui.addingCommunityGem = true;
+  appState.ui.profileSettingsMode = false;
+  appState.ui.selectedProfileGroup = "mine";
+  // Reuse the gem's existing location
+  appState.map.pendingCommunityLngLat = [gem.lng, gem.lat];
+  appState.ui.communityDraftGradient = gem.gemColor || pickCommunityGradient();
+  if (!appState.ui.previousViewState) {
+    appState.ui.previousViewState = {
+      activeTab: appState.ui.activeTab,
+      selectedAttractionId: appState.ui.selectedAttractionId,
+      viewMode: appState.ui.viewMode,
+      selectedNeighborhoodId: appState.ui.selectedNeighborhoodId,
+      selectedNeighborhoodName: appState.ui.selectedNeighborhoodName
+    };
+  }
+  setActiveTab("profile");
+  updateApp();
+}
+
+// ── Route generation ──────────────────────────────────────────────────────
+function haversineKm(a, b){
+  const R = 6371;
+  const dLat = (b.lat - a.lat) * Math.PI / 180;
+  const dLng = (b.lng - a.lng) * Math.PI / 180;
+  const sin2 = Math.sin(dLat/2)**2 + Math.cos(a.lat*Math.PI/180)*Math.cos(b.lat*Math.PI/180)*Math.sin(dLng/2)**2;
+  return R * 2 * Math.asin(Math.sqrt(sin2));
+}
+
+function permutations(arr){
+  if (arr.length <= 1) return [arr];
+  const result = [];
+  for (let i = 0; i < arr.length; i++){
+    const rest = [...arr.slice(0,i), ...arr.slice(i+1)];
+    for (const p of permutations(rest)) result.push([arr[i], ...p]);
+  }
+  return result;
+}
+
+function routeDistance(pts){
+  let d = 0;
+  for (let i = 0; i < pts.length - 1; i++) d += haversineKm(pts[i], pts[i+1]);
+  return d;
+}
+
+function bestOrder(pts){
+  let best = null, bestDist = Infinity;
+  for (const perm of permutations(pts)){
+    const d = routeDistance(perm);
+    if (d < bestDist){ bestDist = d; best = perm; }
+  }
+  return best;
+}
+
+function clusterSelect(all, n){
+  // Pick n gems from all that are geographically tightest
+  if (all.length <= n) return all;
+  let bestCluster = null, bestAvg = Infinity;
+  for (let i = 0; i < all.length; i++){
+    const others = all.filter((_,j) => j !== i);
+    others.sort((a,b) => haversineKm(all[i],a) - haversineKm(all[i],b));
+    const group = [all[i], ...others.slice(0, n-1)];
+    const avg = routeDistance(group) / (group.length - 1);
+    if (avg < bestAvg){ bestAvg = avg; bestCluster = group; }
+  }
+  return bestCluster;
+}
+
+async function generateRoute(){
+  const savedIds = [...appState.userActions.saved];
+  const candidates = mergedAttractions()
+    .filter(a => savedIds.includes(a.id) && a.lat != null && a.lng != null && !a.isPolygon)
+    .map(a => ({ ...a, lat: Number(a.lat), lng: Number(a.lng) }));
+
+  if (candidates.length < 2) return;
+
+  const cluster = clusterSelect(candidates, Math.min(5, candidates.length));
+  const ordered = bestOrder(cluster);
+
+  appState.ui.routeMode = true;
+  appState.ui.routeGemIds = ordered.map(g => g.id);
+  appState.ui.routeOrdered = ordered;
+
+  // Fit map to route bounds
+  const map = appState.map.instance;
+  if (map){
+    const lngs = ordered.map(g => g.lng);
+    const lats = ordered.map(g => g.lat);
+    map.fitBounds(
+      [[Math.min(...lngs), Math.min(...lats)], [Math.max(...lngs), Math.max(...lats)]],
+      { padding: 60, maxZoom: 14, duration: 550 }
+    );
+  }
+
+  await drawRouteOnMap(ordered);
+  renderRouteBanner(ordered);
+  updateApp();
+}
+
+async function drawRouteOnMap(ordered){
+  const map = appState.map.instance;
+  if (!map) return;
+
+  // Remove old route layers/sources
+  clearRouteFromMap();
+
+  // Try Mapbox Directions API (walking)
+  try {
+    const coords = ordered.map(g => `${g.lng},${g.lat}`).join(";");
+    const url = `https://api.mapbox.com/directions/v5/mapbox/walking/${coords}?geometries=geojson&access_token=${MAPBOX_TOKEN}`;
+    const res = await fetch(url);
+    if (res.ok){
+      const data = await res.json();
+      const geometry = data.routes && data.routes[0] && data.routes[0].geometry;
+      if (geometry){
+        addRouteLayer(geometry);
+        return;
+      }
+    }
+  } catch(_e){}
+
+  // Fallback: straight-line polyline
+  addRouteLayer({
+    type: "LineString",
+    coordinates: ordered.map(g => [g.lng, g.lat])
+  });
+}
+
+function addRouteLayer(geometry){
+  const map = appState.map.instance;
+  if (!map) return;
+  if (map.getSource("route-line")) {
+    map.getSource("route-line").setData({ type: "Feature", geometry });
+  } else {
+    map.addSource("route-line", { type: "geojson", data: { type: "Feature", geometry } });
+    map.addLayer({
+      id: "route-line-casing", type: "line", source: "route-line",
+      paint: { "line-color": "#fff", "line-width": 6, "line-opacity": 0.7 }
+    });
+    map.addLayer({
+      id: "route-line-fill", type: "line", source: "route-line",
+      paint: {
+        "line-color": "#0F52BA",
+        "line-width": 3.5,
+        "line-dasharray": [2, 1.5],
+        "line-opacity": 0.95
+      }
+    });
+  }
+}
+
+function clearRouteFromMap(){
+  const map = appState.map.instance;
+  if (!map) return;
+  ["route-line-fill","route-line-casing"].forEach(id => { try{ map.removeLayer(id); }catch(_e){} });
+  try{ map.removeSource("route-line"); }catch(_e){}
+}
+
+function renderRouteBanner(ordered){
+  // Remove existing banner
+  document.getElementById("routeBanner")?.remove();
+  if (!appState.ui.routeMode) return;
+  const totalKm = routeDistance(ordered).toFixed(1);
+  const mapWrap = document.querySelector(".map-wrap");
+  if (!mapWrap) return;
+  const banner = document.createElement("div");
+  banner.id = "routeBanner";
+  banner.className = "route-banner";
+  banner.innerHTML = `
+    🗺 Route: ${ordered.length} gems · ${totalKm} km (walking)
+    <button data-action="clear-route">✕ Standard mode</button>
+  `;
+  mapWrap.appendChild(banner);
+}
+
+function clearRoute(){
+  appState.ui.routeMode = false;
+  appState.ui.routeGemIds = [];
+  appState.ui.routeOrdered = [];
+  clearRouteFromMap();
+  document.getElementById("routeBanner")?.remove();
+  updateApp();
+}
+function setProfileGroup(k){
+  appState.ui.profileSettingsMode = false;
+  appState.ui.selectedProfileGroup = k;
+  renderDrawerProfilePanel();   // ← this was missing
+  if (appState.ui.activeTab === "profile") renderProfile();
+  updateApp();
+}
+function openProfileFromMenu(tab){
+  appState.ui.profileSettingsMode = tab === "settings";
+  if (tab === "saved") appState.ui.selectedProfileGroup = "saved";
+
+  document.querySelectorAll('[data-action="open-profile"]').forEach(el => {
+    el.classList.toggle('active', el.dataset.profileTab === tab);
+  });
+
+  // Keep right drawer open; only swap its inner panel.
+  renderDrawerPanels();
+  renderDrawerProfilePanel();
+  updateApp();
+}
+function setViewMode(mode){
+  appState.ui.viewMode = mode;
+  if (mode === "neighbourhoods") {
+    appState.ui.selectedNeighborhoodId = null;
+    appState.ui.selectedNeighborhoodName = "";
+  }
+  document.querySelectorAll('[data-action="set-view-mode"]').forEach(b => b.classList.toggle('active', b.dataset.mode === mode));
+  updateApp();
+}
+function backToNeighbourhoods(){
+  appState.ui.selectedNeighborhoodId = null;
+  appState.ui.selectedNeighborhoodName = "";
+  appState.ui.viewMode = "neighbourhoods";
+  appState.ui.selectedAttractionId = null;
+  setActiveTab("list");
+  updateApp();
+}
+function renderTopMatchesHeader(){
+  const el = document.getElementById("tabListBtn");
+  const backBtn = document.getElementById("backToNeighborhoodsBtn");
+  if (!el) return;
+
+  const inNeighborhood = !!appState.ui.selectedNeighborhoodId && appState.ui.viewMode === "attractions";
+  if (inNeighborhood) {
+    el.textContent = `Top matches in ${appState.ui.selectedNeighborhoodName}`;
+  } else if (appState.ui.viewMode === "neighbourhoods") {
+    el.textContent = "Neighbourhoods";
+  } else {
+    el.textContent = "Top matches";
+  }
+
+  if (backBtn) backBtn.classList.toggle("hidden", !inNeighborhood);
+}
+
+function updateApp(){
+  appState.data.ranked = deriveRankedAttractions();
+  renderAllPreferenceUI();
+  renderTopMatchesHeader();
+  renderList(appState.data.ranked);
+  renderMap(appState.data.ranked);
+  renderDetail(getSelectedAttraction());
+  if (appState.ui.activeTab === "profile") renderProfile();
+  renderDrawerProfilePanel();   // ← ADD THIS LINE
+  applyTabUi(appState.ui.activeTab);
+}
+
+// =====================================================================
+// BLOCK 12: DOM EVENT DELEGATION + INIT (REWRITE)
+// =====================================================================
+function bindDelegatedEvents(){
+  document.body.addEventListener("click", (e) => {
+    const btn = e.target.closest("[data-action]"); if (!btn) return;
+    const action = btn.dataset.action;
+    if (action === "select-attraction") return selectAttraction(btn.dataset.id);
+    if (action === "clear-selection") return clearSelection();
+    if (action === "toggle-interaction"){ e.stopPropagation(); return toggleInteraction(btn.dataset.kind, btn.dataset.id); }
+    if (action === "apply-preset") return applyPreset(Number(btn.dataset.idx));
+    if (action === "toggle-gem-family") return toggleGemFamily(btn.dataset.key);
+    if (action === "start-community-gem"){ if (btn.classList.contains("disabled")) return; return startCommunityGemMode(); }
+    if (action === "cancel-community-gem") return cancelCommunityGem();
+    if (action === "edit-community-gem") return editCommunityGem(btn.dataset.id);
+    if (action === "delete-community-gem") return deleteCommunityGem(btn.dataset.id);
+    if (action === "set-profile-group") return setProfileGroup(btn.dataset.filter);
+    if (action === "open-profile") return openProfileFromMenu(btn.dataset.profileTab);
+    if (action === "set-view-mode") return setViewMode(btn.dataset.mode);
+    if (action === "back-to-neighbourhoods") return backToNeighbourhoods();
+    if (action === "niche-feedback") return applyNicheFeedback(btn.dataset.dir);
+    if (action === "generate-route") return generateRoute();
+    if (action === "clear-route") return clearRoute();
+  });
+  document.body.addEventListener("input", (e) => {
+    const t = e.target;
+    if (!(t instanceof HTMLInputElement)) return;
+    if (t.dataset.action === "weight-input" && t.dataset.key) return updateWeight(t.dataset.key, t.value);
+  });
+  document.body.addEventListener("submit", (e) => {
+    const form = e.target; if (!(form instanceof HTMLFormElement)) return;
+    if (form.id === "communityGemForm"){ e.preventDefault(); saveCommunityGem(); }
+  });
+  document.body.addEventListener("keydown", (e) => { if (e.key === "Escape" && appState.ui.prefsOpen) togglePrefs(false); });
+}
+
+function bindStaticEvents(){
+  document.getElementById("menuBtn")?.addEventListener("click", () => togglePrefs());
+  document.getElementById("backPrefsBtn")?.addEventListener("click", () => togglePrefs(false));
+  document.getElementById("advancedPanel")?.classList.add("open");
+  document.getElementById("toggleAdvancedBtn")?.classList.add("open");
+  document.getElementById("toggleOnboardingAdvancedBtn")?.addEventListener("click", () => {
+    toggleAdvanced("onboardingAdvancedPanel","toggleOnboardingAdvancedBtn","onboardingAdvancedOpen");
+    document.getElementById("onboardingHeroBlock")?.classList.toggle("move-up", appState.ui.onboardingAdvancedOpen);
+  });
+  document.getElementById("addGemFixedBtn")?.addEventListener("click", () => startCommunityGemMode());
+  document.getElementById("legendToggleBtn")?.addEventListener("click", () => {
+    appState.ui.legendOpen = !appState.ui.legendOpen;
+    document.getElementById("mapLegend")?.classList.toggle("hidden", !appState.ui.legendOpen);
+  });
+  document.getElementById("startAppBtn")?.addEventListener("click", () => {
+    appState.ui.onboardingOpen = false;
+    document.getElementById("onboarding")?.classList.add("hidden");
+    updateApp();
+    if (appState.map.instance) setTimeout(() => appState.map.instance.resize(), 160);
+  });
+}
+
+function initA11yStructure(){
+  document.getElementById("tabListBtn")?.parentElement?.setAttribute("role","tablist");
+}
+
+function initMobileExpand() {
+  const btn = document.getElementById("mobileExpandBtn");
+  const label = document.getElementById("mobileExpandLabel");
+  if (!btn) return;
+  let state = "default"; // "default" | "list" | "map"
+  btn.addEventListener("click", () => {
+    document.body.classList.remove("map-expanded", "list-expanded");
+    if (state === "list") {
+      state = "default";
+      label.textContent = "Expand list";
+    } else if (state === "map") {
+      state = "default";
+      label.textContent = "Expand list";
+    } else {
+      state = "list";
+      document.body.classList.add("list-expanded");
+      label.textContent = "Show map";
+    }
+    if (state === "map") {
+      document.body.classList.add("map-expanded");
+      label.textContent = "Show list";
+    }
+    if (appState.map.instance) setTimeout(() => appState.map.instance.resize(), 120);
+  });
+}
+  
+function initApp(){
+  initA11yStructure();
+  initFirebase();
+  initMap();
+  bindDelegatedEvents();
+  bindStaticEvents();
+  renderAllPreferenceUI();
+  applyPreset(0);
+  setActiveTab("list");
+  initMobileExpand();
+
+  // Show loading state immediately
+  const cont = document.getElementById("listContainer");
+  if (cont) cont.innerHTML = `
+    <div style="display:grid;gap:10px;padding:8px">
+      ${Array(6).fill(`<div style="height:72px;border-radius:14px;background:linear-gradient(90deg,#f0ede8 25%,#e8e5e0 50%,#f0ede8 75%);background-size:200% 100%;animation:shimmer 1.5s ease-in-out infinite"></div>`).join("")}
+    </div>`;
+
+  fetch(ATTRACTIONS_CDN_URL)
+    .then(r => { if (!r.ok) throw new Error("CDN fetch failed"); return r.json(); })
+    .then(data => {
+      appState.data.baseAttractions = data;
+      appState.data._attractionsLoaded = true;
+      updateApp();
+    })
+    .catch(() => {
+      // Fallback to inline data
+      appState.data.baseAttractions = [...BASE_ATTRACTIONS];
+      appState.data._attractionsLoaded = true;
+      updateApp();
+    });
+
+  updateApp();
+  if (appState.map.instance) setTimeout(() => appState.map.instance.resize(), 120);
+}
+initApp();
+
+
+</script>
+</body>
+</html>
